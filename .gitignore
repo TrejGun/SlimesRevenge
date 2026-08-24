@@ -1,0 +1,48 @@
+# Unity
+/[Ll]ibrary/
+/[Tt]emp/
+/[Oo]bj/
+/[Bb]uild/
+/[Bb]uilds/
+/[Ll]ogs/
+/[Uu]ser[Ss]ettings/
+*.log
+*.csproj
+*.unityproj
+*.sln
+*.slnx
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+.vs/
+.gradle/
+.idea/
+.DS_Store
+
+# Unity generated
+sysinfo.txt
+mono_crash.*
+crashlytics-build.properties
+InitTestScene*.unity*
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+*.app
+
+# Memory / recordings
+/[Mm]emoryCaptures/
+/[Rr]ecordings/
+
+# Rider
+/[Aa]ssets/Plugins/Editor/JetBrains*
+*.DotSettings.user
