@@ -53,16 +53,17 @@ Artifacts (only from `Build` on `main`):
 
 - `Assets/Scenes/Main.unity` — title after splash, then loads `Game`
 - `Assets/Scenes/Game.unity` — 10×10 grass world, slime in the center, rat/cat/dog beside it
-- `Assets/Art` — characters, UI, terrain sheets and blob `Tile` assets
+- `Assets/Art` — characters, UI, puddles, per-substance slime sheets (`Slimes/`), animal walk sheets (`Animals/`)
+- `Assets/ElvGames` — Fantasy Dreamland / Reborn tilesets (ground and decor)
 - `Assets/Localization/Resources` — English and Russian string tables (`Resources.Load`, no Addressables)
 - `Assets/Scripts/Runtime` — gameplay, one asmdef, grouped by feature:
   - `App` — title hold and scene load
-  - `World` — grid, terrain, blob tiles, `WorldView`, Chebyshev pathfinding via built-in NavMesh (`com.unity.modules.ai`)
+  - `World` — grid, terrain, `WorldView`, Chebyshev pathfinding via built-in NavMesh (`com.unity.modules.ai`)
   - `Creatures` — `Creature` with vision, speed, and a stored behavior pattern; combat switches acting to aggressive
   - `Volume` — units and substances
   - `Status` — timed effects on a creature (permanent = duration never ends)
   - `Turns` — `GameSession`, `TurnManager`, input, combat
   - `Behavior` — turn-based mob patterns (`Cowardly`, `Passive`, `Aggressive`); Unity Behavior graph nodes in `Actions/` and `Conditions/`
   - `Localization` — `I18n` + `TextKey`
-- `Assets/Scripts/Editor` — `Build/` (Android / iOS / OSX) and `Art/` (`Create Terrain Tiles`)
+- `Assets/Scripts/Editor` — `Build/` (Android / iOS / OSX)
 - `Assets/Tests/Editor` — EditMode tests, mirrored by feature

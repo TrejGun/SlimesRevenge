@@ -284,14 +284,33 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilemap: {fileID: 100200002}
-  grass: {fileID: 11400000, guid: b111711e6a5500000000000000000001, type: 2}
-  dirt: {fileID: 11400000, guid: b111711ed14700000000000000000001, type: 2}
-  sand: {fileID: 11400000, guid: b111711e5a7d00000000000000000001, type: 2}
+  grass: {fileID: 11400000, guid: 05e7fba1acadc0640a5b490d479c223f, type: 2}
+  grassDecorations:
+  - {fileID: 11400000, guid: 70f4814905b323c4d8e192d651d3ef37, type: 2}
+  - {fileID: 11400000, guid: 2161dbcd0f677b04f8d553c5dd9604f9, type: 2}
+  - {fileID: 11400000, guid: 9b50d7d3e1f16ed4983697533878903a, type: 2}
+  - {fileID: 11400000, guid: 05c963a7ddca56a438d0b015fd57c349, type: 2}
+  - {fileID: 11400000, guid: 20d253f20423eae4badbfc6be26d75e4, type: 2}
+  - {fileID: 11400000, guid: fd50342de4143cc478d16910a32f7519, type: 2}
+  - {fileID: 11400000, guid: b15aca203dc411c4290e137f0333ceef, type: 2}
+  - {fileID: 11400000, guid: d67449d6407682d48acbdefd700b8576, type: 2}
+  - {fileID: 11400000, guid: 03139614c41b9df47aae0c701b69927b, type: 2}
+  - {fileID: 11400000, guid: 0ed16067b2210d84bb623005d08a47fb, type: 2}
+  - {fileID: 11400000, guid: b850a95a440b5fa4a8462791331a7bdf, type: 2}
+  - {fileID: 11400000, guid: 4e8c20523f188e24abc146641b1a10db, type: 2}
+  - {fileID: 11400000, guid: 36f0693abda487948b8458f0dd3478aa, type: 2}
+  - {fileID: 11400000, guid: a9a52cb8f5d8a8241acdbb35186aeb61, type: 2}
+  - {fileID: 11400000, guid: fb364ef1b8b80184a8765cb368bb7b62, type: 2}
+  - {fileID: 11400000, guid: 0a19fad692fda8046b75266667a6e14e, type: 2}
   worldCamera: {fileID: 519420031}
   slime: {fileID: 100300003}
   rat: {fileID: 100400003}
   cat: {fileID: 100500003}
   dog: {fileID: 100600003}
+  bat: {fileID: 0}
+  scorpion: {fileID: 0}
+  batSprite: {fileID: -1777074567, guid: c65400c7fae84f02b72405ab815d8b1f, type: 3}
+  scorpionSprite: {fileID: 100000, guid: 5185e9659894469ab48fd31da7b0903b, type: 3}
   turnManager: {fileID: 100100004}
 --- !u!114 &100100004
 MonoBehaviour:
@@ -517,7 +536,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: 21300000, guid: a11151e0000000000000000000000001, type: 3}
+  m_Sprite: {fileID: 908976682, guid: 73f23c2a6ff64f02896cb8a814d3f822, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -540,6 +559,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e11151e0000000000000000000000001, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  waterSprite: {fileID: 908976682, guid: 73f23c2a6ff64f02896cb8a814d3f822, type: 3}
+  oilSprite: {fileID: 908976682, guid: 3cc2c7115f81492d93c18aaa54e976ee, type: 3}
+  poisonSprite: {fileID: 908976682, guid: e33063d6efa545b2837612dbe9d2261d, type: 3}
+  acidSprite: {fileID: 908976682, guid: 3aaa217591794bfb95767e0436608e42, type: 3}
+  bloodSprite: {fileID: 908976682, guid: 169f4764da0743b7bdb7c94e0039659a, type: 3}
+  lavaSprite: {fileID: 908976682, guid: 0c6f3d5210674da8866db660a6f80436, type: 3}
 --- !u!58 &100300004
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -630,7 +655,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: 21300000, guid: a111aa70000000000000000000000001, type: 3}
+  m_Sprite: {fileID: 100000, guid: 6899706a306b47c9b1ab5ccd47acdbfd, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -727,7 +752,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: 21300000, guid: a111ca70000000000000000000000001, type: 3}
+  m_Sprite: {fileID: 100000, guid: e0c5a49a41174711883ff4896886fca2, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -824,7 +849,7 @@ SpriteRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 10
-  m_Sprite: {fileID: 21300000, guid: a111d070000000000000000000000001, type: 3}
+  m_Sprite: {fileID: 100000, guid: 56958aa8e1274ea68c1b09bc8fb70edc, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
