@@ -19,19 +19,32 @@ This machine currently has the editor without mobile modules, and batchmode need
 
 ## CI (GitHub Actions)
 
-[`.github/workflows/build.yml`](.github/workflows/build.yml) runs EditMode tests, then builds Android (APK) and iOS (Xcode project) with [GameCI](https://game.ci/docs/github/getting-started).
+Default branch is **`dev`** (day-to-day work). **`main`** is for releases.
+
+[`.github/workflows/build.yml`](.github/workflows/build.yml) ([GameCI](https://game.ci/docs/github/getting-started)):
+
+| Trigger | EditMode tests | Android + iOS build |
+| --- | --- | --- |
+| Push / PR → `dev` | yes | no |
+| PR → `main` | yes | no |
+| Push → `main` (after merge) | yes | yes |
+| Manual `workflow_dispatch` on `main` | yes | yes |
+
+A new commit on the same branch **cancels** the previous in-progress run (`concurrency.cancel-in-progress`).
+
+Feature branches: open a PR into `dev` (or `main`) — CI runs on the PR, not on every push to the feature branch alone.
 
 Add repository secrets (Personal license):
 
 1. `UNITY_LICENSE` — contents of local `Unity_lic.ulf` (already set from this machine).
 2. `UNITY_EMAIL` — Unity account email (already set).
-3. `UNITY_PASSWORD` — Unity account password (**still required**; set via `gh secret set UNITY_PASSWORD`).
+3. `UNITY_PASSWORD` — Unity account password (already set).
 
 One-shot renewal helper: [`.github/workflows/activation.yml`](.github/workflows/activation.yml) (workflow_dispatch → `.alf` artifact → https://license.unity3d.com → new `.ulf`).
 
 See [GameCI activation](https://game.ci/docs/github/activation).
 
-Artifacts:
+Artifacts (only from `main` builds):
 
 - `slimesrevenge-Android` — debug-signed APK (installable on a device)
 - `slimesrevenge-iOS` — exported Xcode project (sign and archive on a Mac for TestFlight/App Store)
