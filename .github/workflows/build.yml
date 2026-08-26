@@ -1,21 +1,13 @@
-name: CI
+name: Build
 
 on:
   workflow_dispatch:
-  # Direct pushes to main/dev only (feature branches use pull_request — no duplicate run per commit)
   push:
     branches:
       - main
-      - dev
-  # PRs targeting main or dev
-  pull_request:
-    branches:
-      - main
-      - dev
-    types: [opened, synchronize, reopened]
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: build-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -61,8 +53,6 @@ jobs:
 
   build:
     name: Build ${{ matrix.targetPlatform }}
-    # Android/iOS only on main (push after merge, or manual run on main)
-    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: test
     runs-on: ubuntu-latest
     strategy:

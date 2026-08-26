@@ -21,18 +21,16 @@ This machine currently has the editor without mobile modules, and batchmode need
 
 Default branch is **`dev`** (day-to-day work). **`main`** is for releases.
 
-[`.github/workflows/build.yml`](.github/workflows/build.yml) ([GameCI](https://game.ci/docs/github/getting-started)):
+Two workflows ([GameCI](https://game.ci/docs/github/getting-started)):
 
-| Trigger | EditMode tests | Android + iOS build |
+| Workflow | When | What |
 | --- | --- | --- |
-| Push / PR → `dev` | yes | no |
-| PR → `main` | yes | no |
-| Push → `main` (after merge) | yes | yes |
-| Manual `workflow_dispatch` on `main` | yes | yes |
+| [`test.yml`](.github/workflows/test.yml) | Push to `dev`, PR → `dev`/`main`, manual | EditMode tests only |
+| [`build.yml`](.github/workflows/build.yml) | Push to `main`, manual on `main` | Tests, then Android + iOS |
 
-A new commit on the same branch **cancels** the previous in-progress run (`concurrency.cancel-in-progress`).
+A new commit on the same branch **cancels** the previous in-progress run for that workflow.
 
-Feature branches: open a PR into `dev` (or `main`) — CI runs on the PR, not on every push to the feature branch alone.
+Feature branches: open a PR into `dev` (or `main`) — only `Test` runs.
 
 Add repository secrets (Personal license):
 
@@ -44,7 +42,7 @@ One-shot renewal helper: [`.github/workflows/activation.yml`](.github/workflows/
 
 See [GameCI activation](https://game.ci/docs/github/activation).
 
-Artifacts (only from `main` builds):
+Artifacts (only from `Build` on `main`):
 
 - `slimesrevenge-Android` — debug-signed APK (installable on a device)
 - `slimesrevenge-iOS` — exported Xcode project (sign and archive on a Mac for TestFlight/App Store)
