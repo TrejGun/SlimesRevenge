@@ -46,3 +46,7 @@ InitTestScene*.unity*
 # Rider
 /[Aa]ssets/Plugins/Editor/JetBrains*
 *.DotSettings.user
+
+# Python
+scripts/__pycache__/
+*.pyc

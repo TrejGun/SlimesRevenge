@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: Shared
+  m_EditorClassIdentifier: UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: Game
+  m_TableCollectionNameGuidString: a1111820000000000000000000000001
+  m_Entries:
+  - m_Id: 1
+    m_Key: combat.attack
+    m_Metadata:
+      m_Items: []
+  - m_Id: 2
+    m_Key: substance.water
+    m_Metadata:
+      m_Items: []
+  - m_Id: 3
+    m_Key: substance.oil
+    m_Metadata:
+      m_Items: []
+  - m_Id: 4
+    m_Key: substance.poison
+    m_Metadata:
+      m_Items: []
+  - m_Id: 5
+    m_Key: substance.acid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 6
+    m_Key: substance.blood
+    m_Metadata:
+      m_Items: []
+  - m_Id: 7
+    m_Key: status.poisoned
+    m_Metadata:
+      m_Items: []
+  - m_Id: 8
+    m_Key: status.corroding
+    m_Metadata:
+      m_Items: []
+  - m_Id: 9
+    m_Key: status.instability
+    m_Metadata:
+      m_Items: []
+  - m_Id: 10
+    m_Key: status.burning
+    m_Metadata:
+      m_Items: []
+  - m_Id: 11
+    m_Key: status.dousing
+    m_Metadata:
+      m_Items: []
+  - m_Id: 12
+    m_Key: status.oiled
+    m_Metadata:
+      m_Items: []
+  - m_Id: 13
+    m_Key: substance.lava
+    m_Metadata:
+      m_Items: []
+  - m_Id: 14
+    m_Key: combat.mess
+    m_Metadata:
+      m_Items: []
+  - m_Id: 15
+    m_Key: combat.collect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16
+    m_Key: combat.devour
+    m_Metadata:
+      m_Items: []
+  - m_Id: 17
+    m_Key: status.fireproof
+    m_Metadata:
+      m_Items: []
+  - m_Id: 18
+    m_Key: status.flammable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 19
+    m_Key: status.retaliation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 20
+    m_Key: game.over
+    m_Metadata:
+      m_Items: []
+  - m_Id: 21
+    m_Key: game.menu
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []

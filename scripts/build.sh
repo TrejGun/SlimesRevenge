@@ -2,25 +2,26 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-UNITY="${UNITY_EDITOR:-/Applications/Unity/Hub/Editor/2021.3.24f1/Unity.app/Contents/MacOS/Unity}"
+UNITY="${UNITY_EDITOR:-/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity}"
 TARGET="${1:-}"
 
 if [[ ! -x "$UNITY" ]]; then
   echo "Unity Editor not found at: $UNITY" >&2
-  echo "Install Unity 2021.3.24f1 or set UNITY_EDITOR." >&2
+  echo "Install Unity 6000.5.9f1 or set UNITY_EDITOR." >&2
   exit 1
 fi
 
 if [[ -z "$TARGET" ]]; then
-  echo "Usage: $0 Android|iOS" >&2
+    echo "Usage: $0 Android|iOS|OSX" >&2
   exit 1
 fi
 
 case "$TARGET" in
-  Android) METHOD="Slime.Editor.MobileBuilder.BuildAndroid" ;;
-  iOS) METHOD="Slime.Editor.MobileBuilder.BuildIOS" ;;
+  Android) METHOD="SlimesRevenge.Editor.MobileBuilder.BuildAndroid" ;;
+  iOS) METHOD="SlimesRevenge.Editor.MobileBuilder.BuildIOS" ;;
+  OSX|macOS|Mac) METHOD="SlimesRevenge.Editor.MobileBuilder.BuildOSX" ;;
   *)
-    echo "Unknown target: $TARGET (expected Android or iOS)" >&2
+    echo "Unknown target: $TARGET (expected Android, iOS, or OSX)" >&2
     exit 1
     ;;
 esac

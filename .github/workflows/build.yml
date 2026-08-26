@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  UNITY_VERSION: 2021.3.24f1
+  UNITY_VERSION: 6000.5.9f1
 
 jobs:
   test:
@@ -73,5 +73,5 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: slime-${{ matrix.targetPlatform }}
+          name: slimesrevenge-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}
