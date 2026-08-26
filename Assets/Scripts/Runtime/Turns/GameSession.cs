@@ -96,7 +96,7 @@ namespace SlimesRevenge
         {
             var distance = GridStep.Chebyshev(from, to);
             return occupied.Contains(from)
-                && World.Contains(to)
+                && World.IsTerrainWalkable(to)
                 && to != PlayerCell
                 && !occupied.Contains(to)
                 && distance >= 1
@@ -128,7 +128,7 @@ namespace SlimesRevenge
 
         private bool CanEnter(Vector2Int destination)
         {
-            return World.Contains(destination)
+            return World.IsTerrainWalkable(destination)
                 && GridStep.IsAdjacent(PlayerCell, destination)
                 && !occupied.Contains(destination);
         }

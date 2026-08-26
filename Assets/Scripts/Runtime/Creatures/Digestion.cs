@@ -1,18 +1,20 @@
+using UnityEngine;
+
 namespace SlimesRevenge
 {
     /// <summary>
-    /// Devouring a corpse: one unit moves into the slime each player-turn start.
+    /// Devouring a corpse creature: one unit moves into the slime each player-turn start.
     /// Leftover matter is discarded if the slime is already at capacity.
     /// </summary>
     public sealed class Digestion
     {
-        public Corpse Current { get; private set; }
+        public Creature Current { get; private set; }
 
         public bool IsBusy => Current != null && Current.Volume.UnitCount > 0;
 
-        public bool TryBegin(Corpse corpse)
+        public bool TryBegin(Creature corpse)
         {
-            if (IsBusy || corpse == null || corpse.Volume.UnitCount == 0)
+            if (IsBusy || corpse == null || !corpse.IsCorpse || corpse.Volume.UnitCount == 0)
             {
                 return false;
             }
@@ -30,7 +32,7 @@ namespace SlimesRevenge
 
             if (Current.Volume.UnitCount == 0)
             {
-                Current = null;
+                FinishCurrent();
                 return false;
             }
 
@@ -38,23 +40,42 @@ namespace SlimesRevenge
             {
                 // No room left — remaining corpse volume vanishes with the body.
                 Current.Volume.Clear();
-                Current = null;
+                FinishCurrent();
                 return false;
             }
 
             if (!Current.Volume.TryTakeEnd(out var substance))
             {
-                Current = null;
+                FinishCurrent();
                 return false;
             }
 
             destination.Add(Volume.CloneSubstance(substance));
             if (Current.Volume.UnitCount == 0)
             {
-                Current = null;
+                FinishCurrent();
             }
 
             return true;
+        }
+
+        private void FinishCurrent()
+        {
+            var body = Current;
+            Current = null;
+            if (body == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Object.Destroy(body.gameObject);
+            }
+            else
+            {
+                Object.DestroyImmediate(body.gameObject);
+            }
         }
     }
 }

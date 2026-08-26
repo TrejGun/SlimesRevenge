@@ -4,7 +4,8 @@
     "references": [
         "UnityEngine.UI",
         "Unity.Behavior",
-        "Unity.Localization"
+        "Unity.Localization",
+        "AstarPathfindingProject"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -2,8 +2,7 @@ namespace SlimesRevenge
 {
     public enum TerrainType
     {
-        Grass,
-        Dirt,
-        Sand
+        Grass = 0,
+        Wall = 1,
     }
 }

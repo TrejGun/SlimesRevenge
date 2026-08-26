@@ -23,7 +23,6 @@ namespace SlimesRevenge
 
         private Creature player;
         private readonly List<Creature> others = new List<Creature>();
-        private readonly List<GameObject> corpseViews = new List<GameObject>();
         private readonly List<GameObject> puddleViews = new List<GameObject>();
         // Death mid-resolve: skip floor aging so a fresh corpse is still there next input,
         // and an older 1 unit corpse can stack with a kill on the immediate next action.
@@ -56,8 +55,12 @@ namespace SlimesRevenge
                 OnEnvironment = BeginPlayerTurn
             };
             RefreshFloorViews();
-            // Opening the scene starts the player's first turn (statuses / floor).
-            BeginPlayerTurn();
+            // Opening turn only if the slime is already alive (empty stack = dead).
+            if (player != null && player.IsAlive)
+            {
+                BeginPlayerTurn();
+            }
+
             if (IsGameOver)
             {
                 return;
@@ -132,7 +135,7 @@ namespace SlimesRevenge
 
             if (player is Slime)
             {
-                player.RefreshBodyTraits();
+                player.RefreshVolumeStatuses();
             }
 
             RefreshFloorViews();
@@ -159,7 +162,7 @@ namespace SlimesRevenge
             player.Volume.Add(Volume.CloneSubstance(substance));
             if (player is Slime)
             {
-                player.RefreshBodyTraits();
+                player.RefreshVolumeStatuses();
             }
 
             RefreshFloorViews();
@@ -206,6 +209,7 @@ namespace SlimesRevenge
             if (player != null)
             {
                 player.PlaceOn(Session.PlayerCell);
+                Session.World.Floor.ApplyContact(player);
             }
         }
 
@@ -231,12 +235,10 @@ namespace SlimesRevenge
                     continue;
                 }
 
-                var from = creature.Cell;
-                creature.TakeTurn(Session, player, Rng);
-                if (creature.IsAlive && creature.Cell != from)
-                {
-                    ApplyPuddle(creature);
-                }
+                creature.TakeTurn(Session, player, Rng, others);
+                // Puddle trap applies inside CreatureMoves.TryStep → Floor.ApplyContact.
+
+                DropFallenPrey();
 
                 if (player != null && !player.IsAlive)
                 {
@@ -256,7 +258,7 @@ namespace SlimesRevenge
             // Player turn start: digestion, corpse aging, then the slime's own statuses.
             if (player != null && player.Digestion.Tick(player.Volume) && player is Slime)
             {
-                player.RefreshBodyTraits();
+                player.RefreshVolumeStatuses();
             }
 
             if (!pauseCorpseAging)
@@ -324,59 +326,34 @@ namespace SlimesRevenge
             gameOverScreen.Show();
         }
 
+        private void DropFallenPrey()
+        {
+            for (var i = 0; i < others.Count; i++)
+            {
+                var victim = others[i];
+                if (victim != null && !victim.IsAlive && !victim.IsCorpse)
+                {
+                    DropCorpse(victim);
+                }
+            }
+        }
+
         private void DropCorpse(Creature creature)
         {
-            if (creature == null || Session == null)
+            if (creature == null || Session == null || creature.IsCorpse)
             {
                 return;
             }
 
             Session.Vacate(creature.Cell);
-            var corpse = new Corpse(creature, KindOf(creature));
-            Session.World.Floor.AddCorpse(corpse);
-            creature.Die();
+            creature.BecomeCorpse();
+            Session.World.Floor.AddCorpse(creature);
             pauseCorpseAging = true;
             RefreshFloorViews();
         }
 
-        private void ApplyPuddle(Creature creature)
-        {
-            if (creature == null || Session == null)
-            {
-                return;
-            }
-
-            var puddle = Session.World.Floor.GetPuddle(creature.Cell);
-            puddle?.Substance.Apply(creature);
-            if (!creature.IsAlive)
-            {
-                DropCorpse(creature);
-            }
-        }
-
-        private static CreatureKind KindOf(Creature creature)
-        {
-            if (creature is Rat)
-            {
-                return CreatureKind.Rat;
-            }
-
-            if (creature is Cat)
-            {
-                return CreatureKind.Cat;
-            }
-
-            if (creature is Dog)
-            {
-                return CreatureKind.Dog;
-            }
-
-            return CreatureKind.Slime;
-        }
-
         private void RefreshFloorViews()
         {
-            ClearViews(corpseViews);
             ClearViews(puddleViews);
             if (Session?.World?.Floor == null)
             {
@@ -393,13 +370,6 @@ namespace SlimesRevenge
                     if (puddle != null)
                     {
                         puddleViews.Add(CreateMarker(cell, puddle.Substance.Color, 0.35f, -0.2f));
-                    }
-
-                    var corpses = floor.GetCorpses(cell);
-                    for (var i = 0; i < corpses.Count; i++)
-                    {
-                        var tint = new Color(0.55f, 0.45f, 0.45f, 0.55f);
-                        corpseViews.Add(CreateMarker(cell + new Vector2(0.08f * i, 0.08f * i), tint, 0.7f, -0.15f));
                     }
                 }
             }

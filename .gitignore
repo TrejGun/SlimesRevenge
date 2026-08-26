@@ -50,3 +50,7 @@ InitTestScene*.unity*
 # Python
 scripts/__pycache__/
 *.pyc
+
+# Local art tooling (not committed)
+scripts/recolor_slime.py
+scripts/out/

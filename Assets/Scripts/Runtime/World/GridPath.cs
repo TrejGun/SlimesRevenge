@@ -1,10 +1,14 @@
 using System;
 using System.Collections.Generic;
+using Pathfinding;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace SlimesRevenge
 {
+    /// <summary>
+    /// Grid pathfinding via <b>A* Pathfinding Project Free</b> (Aron Granberg).
+    /// Builds a temporary <see cref="GridGraph"/>, marks walls/blockers unwalkable, runs <see cref="ABPath"/>.
+    /// </summary>
     public static class GridPath
     {
         public static bool TryWalk(
@@ -13,7 +17,8 @@ namespace SlimesRevenge
             IEnumerable<Vector2Int> goals,
             Func<Vector2Int, bool> blocked,
             int maxStep,
-            out Vector2Int destination)
+            out Vector2Int destination,
+            Creature walker = null)
         {
             destination = from;
             if (maxStep < 1)
@@ -21,7 +26,7 @@ namespace SlimesRevenge
                 return false;
             }
 
-            var path = Find(world, from, goals, blocked);
+            var path = Find(world, from, goals, blocked, walker);
             if (path == null || path.Count == 0)
             {
                 return false;
@@ -36,7 +41,8 @@ namespace SlimesRevenge
             World world,
             Vector2Int start,
             IEnumerable<Vector2Int> goals,
-            Func<Vector2Int, bool> blocked)
+            Func<Vector2Int, bool> blocked,
+            Creature walker = null)
         {
             if (world == null || blocked == null || goals == null)
             {
@@ -46,7 +52,7 @@ namespace SlimesRevenge
             var goalSet = new HashSet<Vector2Int>();
             foreach (var goal in goals)
             {
-                if (world.Contains(goal) && !blocked(goal))
+                if (world.Contains(goal) && (goal == start || !blocked(goal)))
                 {
                     goalSet.Add(goal);
                 }
@@ -62,92 +68,143 @@ namespace SlimesRevenge
                 return new List<Vector2Int>();
             }
 
-            var sources = WalkableSources(world, start, blocked);
-            if (sources.Count == 0)
+            var host = new GameObject("AstarPathfindingProject.Temp")
             {
-                return null;
-            }
-
-            var bounds = new Bounds(
-                new Vector3(world.Width * 0.5f, 0f, world.Height * 0.5f),
-                new Vector3(world.Width + 2f, 2f, world.Height + 2f));
-            var data = NavMeshBuilder.BuildNavMeshData(
-                AgentSettings(),
-                sources,
-                bounds,
-                Vector3.zero,
-                Quaternion.identity);
-            if (data == null)
-            {
-                return null;
-            }
-
-            var instance = NavMesh.AddNavMeshData(data);
+                hideFlags = HideFlags.HideAndDontSave
+            };
+            var astar = host.AddComponent<AstarPath>();
+            EnsureAstarReady(astar);
             try
             {
-                return Shortest(start, goalSet);
+                ConfigureGraph(astar, world, start, blocked, walker);
+                return ShortestAstarPath(start, goalSet);
             }
             finally
             {
-                if (instance.valid)
-                {
-                    NavMesh.RemoveNavMeshData(instance);
-                }
-
                 if (Application.isPlaying)
                 {
-                    UnityEngine.Object.Destroy(data);
+                    UnityEngine.Object.Destroy(host);
                 }
                 else
                 {
-                    UnityEngine.Object.DestroyImmediate(data);
+                    UnityEngine.Object.DestroyImmediate(host);
                 }
             }
         }
 
-        private static List<Vector2Int> Shortest(Vector2Int start, HashSet<Vector2Int> goals)
+        /// <summary>
+        /// <see cref="AstarPath.Awake"/> skips init when not playing; EditMode tests need the same setup.
+        /// </summary>
+        private static void EnsureAstarReady(AstarPath astar)
+        {
+            if (astar.data != null)
+            {
+                return;
+            }
+
+            astar.ConfigureReferencesInternal();
+            astar.data.FindGraphTypes();
+            astar.data.Awake();
+            astar.data.UpdateShortcuts();
+        }
+
+        private static void ConfigureGraph(
+            AstarPath astar,
+            World world,
+            Vector2Int start,
+            Func<Vector2Int, bool> blocked,
+            Creature walker)
+        {
+            var gg = astar.data.AddGraph(typeof(GridGraph)) as GridGraph;
+            gg.center = new Vector3(world.Width * 0.5f - 0.5f, 0f, world.Height * 0.5f - 0.5f);
+            gg.SetDimensions(world.Width, world.Height, 1f);
+            gg.neighbours = NumNeighbours.Eight;
+            gg.collision.collisionCheck = false;
+            gg.collision.heightCheck = false;
+            astar.Scan(gg);
+
+            for (var z = 0; z < world.Height; z++)
+            {
+                for (var x = 0; x < world.Width; x++)
+                {
+                    var cell = new Vector2Int(x, z);
+                    var node = gg.GetNode(x, z);
+                    if (node == null)
+                    {
+                        continue;
+                    }
+
+                    node.Walkable = cell == start || !blocked(cell);
+                    if (node.Walkable)
+                    {
+                        node.Penalty = FloorPenalty(world, cell, walker);
+                    }
+                }
+            }
+
+            for (var z = 0; z < world.Height; z++)
+            {
+                for (var x = 0; x < world.Width; x++)
+                {
+                    gg.CalculateConnections(x, z);
+                }
+            }
+
+            astar.FloodFill();
+        }
+
+        /// <summary>
+        /// Scales <see cref="Substance.FloorPriorityFor"/> into A* node penalty so safer puddles win ties.
+        /// </summary>
+        private static uint FloorPenalty(World world, Vector2Int cell, Creature walker)
+        {
+            var puddle = world.Floor.GetPuddle(cell);
+            if (puddle?.Substance == null)
+            {
+                return 0;
+            }
+
+            var priority = Mathf.Max(0, puddle.Substance.FloorPriorityFor(walker));
+            return (uint)(priority * 1000);
+        }
+
+        private static List<Vector2Int> ShortestAstarPath(Vector2Int start, HashSet<Vector2Int> goals)
         {
             List<Vector2Int> best = null;
             foreach (var goal in goals)
             {
-                var path = Trace(start, goal);
-                if (path == null)
+                var ab = ABPath.Construct(Point(start), Point(goal), null);
+                AstarPath.StartPath(ab);
+                ab.BlockUntilCalculated();
+                if (ab.error || ab.vectorPath == null || ab.vectorPath.Count == 0)
+                {
+                    continue;
+                }
+
+                var cells = ToCells(start, ab.vectorPath);
+                if (cells == null || cells.Count == 0)
                 {
                     continue;
                 }
 
                 if (best == null
-                    || path.Count < best.Count
-                    || (path.Count == best.Count && Compare(path[path.Count - 1], best[best.Count - 1]) < 0))
+                    || cells.Count < best.Count
+                    || (cells.Count == best.Count && Compare(cells[cells.Count - 1], best[best.Count - 1]) < 0))
                 {
-                    best = path;
+                    best = cells;
                 }
             }
 
             return best;
         }
 
-        private static List<Vector2Int> Trace(Vector2Int start, Vector2Int goal)
+        private static List<Vector2Int> ToCells(Vector2Int start, List<Vector3> vectorPath)
         {
-            if (!NavMesh.SamplePosition(Point(start), out var from, 0.75f, NavMesh.AllAreas)
-                || !NavMesh.SamplePosition(Point(goal), out var to, 0.75f, NavMesh.AllAreas))
-            {
-                return null;
-            }
-
-            var navPath = new NavMeshPath();
-            if (!NavMesh.CalculatePath(from.position, to.position, NavMesh.AllAreas, navPath)
-                || navPath.status != NavMeshPathStatus.PathComplete
-                || navPath.corners.Length == 0)
-            {
-                return null;
-            }
-
             var cells = new List<Vector2Int>();
             var previous = start;
-            foreach (var corner in navPath.corners)
+            foreach (var point in vectorPath)
             {
-                var cell = Cell(corner);
+                var cell = Cell(point);
                 AppendLine(cells, previous, cell);
                 previous = cell;
             }
@@ -158,52 +215,6 @@ namespace SlimesRevenge
             }
 
             return cells.Count == 0 ? null : cells;
-        }
-
-        private static List<NavMeshBuildSource> WalkableSources(
-            World world,
-            Vector2Int start,
-            Func<Vector2Int, bool> blocked)
-        {
-            var sources = new List<NavMeshBuildSource>();
-            for (var y = 0; y < world.Height; y++)
-            {
-                for (var x = 0; x < world.Width; x++)
-                {
-                    var cell = new Vector2Int(x, y);
-                    if (cell != start && blocked(cell))
-                    {
-                        continue;
-                    }
-
-                    sources.Add(new NavMeshBuildSource
-                    {
-                        shape = NavMeshBuildSourceShape.Box,
-                        area = 0,
-                        size = new Vector3(1.1f, 0.2f, 1.1f),
-                        transform = Matrix4x4.TRS(Point(cell), Quaternion.identity, Vector3.one)
-                    });
-                }
-            }
-
-            return sources;
-        }
-
-        private static NavMeshBuildSettings AgentSettings()
-        {
-            var settings = NavMesh.GetSettingsCount() > 0
-                ? NavMesh.GetSettingsByIndex(0)
-                : NavMesh.CreateSettings();
-            settings.agentRadius = 0.2f;
-            settings.agentHeight = 1f;
-            settings.agentSlope = 60f;
-            settings.agentClimb = 0.4f;
-            settings.minRegionArea = 0f;
-            settings.overrideVoxelSize = true;
-            settings.voxelSize = settings.agentRadius / 3f;
-            settings.overrideTileSize = true;
-            settings.tileSize = 32;
-            return settings;
         }
 
         private static Vector3 Point(Vector2Int cell)

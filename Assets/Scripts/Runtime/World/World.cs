@@ -50,6 +50,26 @@ namespace SlimesRevenge
             return cells[position.x, position.y];
         }
 
+        public bool IsWall(Vector2Int position)
+        {
+            return Contains(position) && GetCell(position).Terrain == TerrainType.Wall;
+        }
+
+        public bool IsTerrainWalkable(Vector2Int position)
+        {
+            return Contains(position) && !IsWall(position);
+        }
+
+        public void SetTerrain(Vector2Int position, TerrainType terrain)
+        {
+            if (!Contains(position))
+            {
+                return;
+            }
+
+            GetCell(position).Terrain = terrain;
+        }
+
         public static World CreateGrass(int size = DefaultSize)
         {
             return new World(size, size, TerrainType.Grass);

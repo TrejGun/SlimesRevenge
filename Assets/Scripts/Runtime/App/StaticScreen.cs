@@ -14,7 +14,7 @@ namespace SlimesRevenge
         {
             Application.targetFrameRate = targetFrameRate;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
-            Screen.orientation = ScreenOrientation.Portrait;
+            Screen.orientation = ScreenOrientation.LandscapeLeft;
         }
 
         private IEnumerator Start()

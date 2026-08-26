@@ -1,0 +1,6 @@
+A* Pathfinding Project — Free version (vendored).
+
+Official name: Free Version (not "Community Edition").
+Source: https://www.arongranberg.com/astar/download
+This tree is based on Free 4.2.x (package.json reports 4.2.15).
+Example scenes were omitted to keep the repo smaller.

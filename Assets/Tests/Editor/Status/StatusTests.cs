@@ -23,21 +23,96 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void WaterAndBlood_ExtinguishFireAndApplyDousing()
+        public void Water_OnBurning_ExtinguishesWithoutWet()
         {
             var rat = Spawn<Rat>(Vector2Int.zero);
             rat.AddStatus(new Burning());
             new Water().Apply(rat);
             Assert.IsNull(rat.FindStatus<Burning>());
-            Assert.IsInstanceOf<Dousing>(rat.FindStatus<Dousing>());
-
-            rat.AddStatus(new Burning());
-            new Blood().Apply(rat);
-            Assert.IsNull(rat.FindStatus<Burning>());
+            Assert.IsNull(rat.FindStatus<Wet>());
         }
 
         [Test]
-        public void Oil_AppliesInstabilityAndSlowsByOne()
+        public void Water_OnCorroding_ClearsWithoutWet()
+        {
+            var rat = Spawn<Rat>(Vector2Int.zero);
+            rat.AddStatus(new Corroding());
+            new Water().Apply(rat);
+            Assert.IsNull(rat.FindStatus<Corroding>());
+            Assert.IsNull(rat.FindStatus<Wet>());
+        }
+
+        [Test]
+        public void Water_OnBurningAndCorroding_ClearsBothWithoutWet()
+        {
+            var rat = Spawn<Rat>(Vector2Int.zero);
+            rat.AddStatus(new Burning());
+            rat.AddStatus(new Corroding());
+            new Water().Apply(rat);
+            Assert.IsNull(rat.FindStatus<Burning>());
+            Assert.IsNull(rat.FindStatus<Corroding>());
+            Assert.IsNull(rat.FindStatus<Wet>());
+        }
+
+        [Test]
+        public void Water_OnBurningCorrodingAndPoisoned_ClearsFireAndAcidKeepsPoison_NoWet()
+        {
+            var dog = Spawn<Dog>(Vector2Int.zero);
+            dog.AddStatus(new Burning());
+            dog.AddStatus(new Poisoned());
+            dog.AddStatus(new Corroding());
+
+            new Water().Apply(dog);
+
+            Assert.IsNull(dog.FindStatus<Burning>());
+            Assert.IsNull(dog.FindStatus<Corroding>());
+            Assert.IsNotNull(dog.FindStatus<Poisoned>());
+            Assert.IsNull(dog.FindStatus<Wet>());
+        }
+
+        [Test]
+        public void Water_OnPoisonedOnly_KeepsPoison_AndAppliesWet()
+        {
+            var dog = Spawn<Dog>(Vector2Int.zero);
+            dog.AddStatus(new Poisoned());
+
+            new Water().Apply(dog);
+
+            Assert.IsNotNull(dog.FindStatus<Poisoned>());
+            Assert.IsNotNull(dog.FindStatus<Wet>());
+        }
+
+        [Test]
+        public void Water_WithoutBurning_AppliesWet()
+        {
+            var rat = Spawn<Rat>(Vector2Int.zero);
+            new Water().Apply(rat);
+            Assert.IsInstanceOf<Wet>(rat.FindStatus<Wet>());
+            Assert.AreEqual(OverTime.DefaultDuration, rat.FindStatus<Wet>().Remaining);
+        }
+
+        [Test]
+        public void Blood_DoesNotExtinguishOrApplyWet()
+        {
+            var rat = Spawn<Rat>(Vector2Int.zero);
+            rat.AddStatus(new Burning());
+            new Blood().Apply(rat);
+            Assert.IsNotNull(rat.FindStatus<Burning>());
+            Assert.IsNull(rat.FindStatus<Wet>());
+        }
+
+        [Test]
+        public void Lava_OnWet_ClearsWetWithoutBurning()
+        {
+            var dog = Spawn<Dog>(Vector2Int.zero);
+            dog.AddStatus(new Wet());
+            new Lava().Apply(dog);
+            Assert.IsNull(dog.FindStatus<Burning>());
+            Assert.IsNull(dog.FindStatus<Wet>());
+        }
+
+        [Test]
+        public void Oil_AppliesInstabilityAndFlammable_ForThreeTurns()
         {
             var slime = Spawn<Slime>(Vector2Int.zero);
             var dog = Spawn<Dog>(Vector2Int.right);
@@ -46,7 +121,9 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(3, dog.Volume.UnitCount);
             Assert.AreEqual(9, dog.HitPoints);
             Assert.AreEqual(1, dog.CountStatus<Instability>());
-            Assert.AreEqual(1, dog.CountStatus<Oiled>());
+            Assert.AreEqual(1, dog.CountStatus<Flammable>());
+            Assert.AreEqual(OverTime.DefaultDuration, dog.FindStatus<Instability>().Remaining);
+            Assert.AreEqual(OverTime.DefaultDuration, dog.FindStatus<Flammable>().Remaining);
             Assert.AreEqual(1, dog.Speed);
         }
 
@@ -69,7 +146,7 @@ namespace SlimesRevenge.Tests
             var slime = Spawn<Slime>(Vector2Int.zero);
             slime.Volume.Clear();
             slime.Volume.Fill(new Lava(), new Lava(), new Lava());
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
             var dog = Spawn<Dog>(Vector2Int.right);
 
             Assert.IsTrue(Combat.Attack(slime, dog, new Lava()));
@@ -80,42 +157,30 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Oil_OnBurning_AddsThreeTurnsToEachStack()
+        public void Flammable_DoublesBurningPulse()
         {
             var dog = Spawn<Dog>(Vector2Int.zero);
+            dog.AddStatus(new Flammable());
             dog.AddStatus(new Burning());
-            dog.AddStatus(new Burning());
-            Assert.AreEqual(3, dog.Statuses[0].Remaining);
-            new Oil().Apply(dog);
-            Assert.AreEqual(6, dog.Statuses[0].Remaining);
-            Assert.AreEqual(6, dog.Statuses[1].Remaining);
-            Assert.AreEqual(1, dog.CountStatus<Oiled>());
+            var before = dog.HitPoints;
+            dog.TickStatuses();
+            Assert.AreEqual(before - 2, dog.HitPoints);
         }
 
         [Test]
-        public void OilStacks_LengthenLaterIgnition()
-        {
-            var dog = Spawn<Dog>(Vector2Int.zero);
-            new Oil().Apply(dog);
-            new Oil().Apply(dog);
-            dog.AddStatus(new Burning());
-            Assert.AreEqual(9, dog.FindStatus<Burning>().Remaining);
-        }
-
-        [Test]
-        public void Water_ClearsAllBurning_KeepsOil()
+        public void Water_ClearsAllBurning_KeepsOilStatuses()
         {
             var dog = Spawn<Dog>(Vector2Int.zero);
             dog.AddStatus(new Burning());
             new Oil().Apply(dog);
             new Oil().Apply(dog);
-            Assert.AreEqual(9, dog.FindStatus<Burning>().Remaining);
+            Assert.AreEqual(OverTime.DefaultDuration, dog.FindStatus<Burning>().Remaining);
 
             new Water().Apply(dog);
             Assert.IsNull(dog.FindStatus<Burning>());
-            Assert.AreEqual(2, dog.CountStatus<Oiled>());
+            Assert.IsNull(dog.FindStatus<Wet>());
+            Assert.AreEqual(2, dog.CountStatus<Flammable>());
             Assert.AreEqual(2, dog.CountStatus<Instability>());
-            Assert.IsNotNull(dog.FindStatus<Dousing>());
         }
 
         [Test]
@@ -214,7 +279,7 @@ namespace SlimesRevenge.Tests
             EnsureHitPoints(creature);
             if (creature is Slime)
             {
-                creature.RefreshBodyTraits();
+                creature.RefreshVolumeStatuses();
             }
 
             return creature;
@@ -225,7 +290,7 @@ namespace SlimesRevenge.Tests
             switch (creature)
             {
                 case Slime:
-                    creature.SetMaxHitPoints(1);
+                    creature.SetMaxHitPoints(0);
                     break;
                 case Rat:
                     creature.SetMaxHitPoints(3);

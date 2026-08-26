@@ -34,7 +34,7 @@ namespace SlimesRevenge.Tests
 
             slime.Volume.Add(new Water());
             slime.Volume.Add(new Oil());
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
 
             Assert.IsTrue(slime.Volume.TryDominant(out var dominant));
             Assert.IsInstanceOf<Lava>(dominant);
@@ -53,7 +53,23 @@ namespace SlimesRevenge.Tests
 
             volume.Add(new Water());
             volume.Add(new Oil());
+            Assert.AreEqual(Volume.DominantPercent, 80);
             Assert.IsFalse(volume.TryDominant(out _));
+        }
+
+        [Test]
+        public void EightOfTen_MeetsDominantPercent()
+        {
+            var volume = new Volume();
+            for (var i = 0; i < 8; i++)
+            {
+                volume.Add(new Oil());
+            }
+
+            volume.Add(new Water());
+            volume.Add(new Water());
+            Assert.IsTrue(volume.TryDominant(out var dominant));
+            Assert.IsInstanceOf<Oil>(dominant);
         }
 
         [Test]
@@ -67,18 +83,65 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
+        public void WaterDominant_LavaStrike_DoesNotIgnite()
+        {
+            var defender = SpawnSlime();
+            FillDominant(defender, new Water(), 8);
+            Assert.IsNotNull(defender.FindStatus<Fireproof>());
+
+            var before = defender.Volume.UnitCount;
+            Assert.IsTrue(Combat.Attack(SpawnSlimeWith(new Lava()), defender, new Lava()));
+
+            Assert.AreEqual(before - 1, defender.Volume.UnitCount);
+            Assert.AreEqual(0, defender.CountStatus<Burning>());
+            Assert.IsNotNull(defender.FindStatus<Fireproof>());
+        }
+
+        [Test]
+        public void Burning_VolumeShiftToWaterDominance_Extinguishes_NoPulseDamage()
+        {
+            var slime = SpawnSlime();
+            slime.Volume.Clear();
+            for (var i = 0; i < 7; i++)
+            {
+                slime.Volume.Add(new Water());
+            }
+
+            slime.Volume.Add(new Oil());
+            slime.Volume.Add(new Oil()); // tip
+            slime.RefreshVolumeStatuses();
+            Assert.IsFalse(slime.Volume.TryDominant(out _));
+            Assert.IsNull(slime.FindStatus<Fireproof>());
+
+            slime.AddStatus(new Burning());
+            Assert.AreEqual(1, slime.CountStatus<Burning>());
+
+            // Pop tip oil → 7 water / 8 = water dominant → Fireproof + Extinguish.
+            slime.Damage(1);
+            Assert.AreEqual(8, slime.Volume.UnitCount);
+            Assert.AreEqual(7, slime.Volume.CountOf<Water>());
+            Assert.IsNotNull(slime.FindStatus<Fireproof>());
+            Assert.AreEqual(0, slime.CountStatus<Burning>());
+
+            var units = slime.Volume.UnitCount;
+            slime.RefreshStatuses();
+            Assert.AreEqual(units, slime.Volume.UnitCount);
+        }
+
+        [Test]
         public void OilDominant_DoublesLavaAttackAndBurnPulse()
         {
             var slime = SpawnSlime();
-            // Pure oil so Flammable survives the −2 strike and still doubles the burn pulse.
+            // Pure oil so permanent Flammable survives the −2 strike and still doubles the burn pulse.
             slime.Volume.Clear();
             for (var i = 0; i < 10; i++)
             {
                 slime.Volume.Add(new Oil());
             }
 
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
             Assert.IsNotNull(slime.FindStatus<Flammable>());
+            Assert.IsTrue(slime.FindStatus<Flammable>().Permanent);
 
             var before = slime.Volume.UnitCount;
             var lava = new Lava();
@@ -86,8 +149,48 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(before - 2, slime.Volume.UnitCount);
             Assert.AreEqual(1, slime.CountStatus<Burning>());
 
-            slime.TickStatuses();
+            slime.RefreshStatuses();
             Assert.AreEqual(before - 4, slime.Volume.UnitCount);
+        }
+
+        [Test]
+        public void OilDominant_AtThreshold_SpendOilAttack_ClearsForeverFlammable_KeepsTimedIfAny()
+        {
+            var slime = SpawnSlime();
+            slime.Volume.Clear();
+            for (var i = 0; i < 8; i++)
+            {
+                slime.Volume.Add(new Oil());
+            }
+
+            slime.Volume.Add(new Water());
+            slime.Volume.Add(new Water());
+            slime.RefreshVolumeStatuses();
+
+            Assert.AreEqual(Volume.DominantPercent, 80);
+            Assert.IsTrue(slime.Volume.TryDominant(out var dominant));
+            Assert.IsInstanceOf<Oil>(dominant);
+            Assert.IsTrue(slime.FindStatus<Flammable>().Permanent);
+            Assert.IsNotNull(slime.FindStatus<Retaliation>());
+
+            // Timed residue under Forever: FindStatus still prefers Forever.
+            slime.AddStatus(new Flammable());
+            Assert.AreEqual(2, slime.CountStatus<Flammable>());
+            Assert.IsTrue(slime.FindStatus<Flammable>().Permanent);
+
+            var rat = Spawn<Rat>(Vector2Int.right);
+            Assert.IsTrue(Combat.Attack(slime, rat, new Oil()));
+
+            Assert.AreEqual(7, slime.Volume.CountOf<Oil>());
+            Assert.AreEqual(2, slime.Volume.CountOf<Water>());
+            Assert.AreEqual(9, slime.Volume.UnitCount);
+            Assert.IsFalse(slime.Volume.TryDominant(out _));
+            Assert.IsNull(slime.FindStatus<Retaliation>());
+            // Forever wiped; timed Flammable remains and is what FindStatus returns.
+            Assert.AreEqual(1, slime.CountStatus<Flammable>());
+            Assert.IsFalse(slime.FindStatus<Flammable>().Permanent);
+            Assert.IsNotNull(rat.FindStatus<Flammable>());
+            Assert.IsFalse(rat.FindStatus<Flammable>().Permanent);
         }
 
         [Test]
@@ -110,6 +213,42 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(1, rat.CountStatus<Burning>());
         }
 
+        [Test]
+        public void BloodDominant_RegenerationGrowsOnPulseUntilCapacity()
+        {
+            // RefreshVolumeStatuses only hangs Regeneration; growth is FIFO OnPulse at turn start.
+            var slime = SpawnSlime();
+            slime.Volume.Clear();
+            for (var i = 0; i < 4; i++)
+            {
+                slime.Volume.Add(new Blood());
+            }
+
+            slime.Volume.Add(new Water());
+            Assert.AreEqual(5, slime.Volume.UnitCount);
+
+            slime.RefreshVolumeStatuses();
+            Assert.IsNotNull(slime.FindStatus<Regeneration>());
+            Assert.AreEqual(4, slime.Volume.CountOf<Blood>());
+            Assert.AreEqual(5, slime.Volume.UnitCount);
+
+            slime.RefreshStatuses();
+            Assert.AreEqual(5, slime.Volume.CountOf<Blood>());
+            Assert.AreEqual(6, slime.Volume.UnitCount);
+
+            while (slime.Volume.UnitCount < Volume.Capacity)
+            {
+                slime.RefreshStatuses();
+            }
+
+            Assert.AreEqual(Volume.Capacity, slime.Volume.UnitCount);
+            Assert.AreEqual(9, slime.Volume.CountOf<Blood>());
+            Assert.AreEqual(1, slime.Volume.CountOf<Water>());
+
+            slime.RefreshStatuses();
+            Assert.AreEqual(Volume.Capacity, slime.Volume.UnitCount);
+        }
+
         private static void FillDominant(Creature slime, Substance kind, int count)
         {
             slime.Volume.Clear();
@@ -120,7 +259,7 @@ namespace SlimesRevenge.Tests
 
             slime.Volume.Add(new Blood());
             slime.Volume.Add(new Water());
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
         }
 
         private Slime SpawnSlimeWith(Substance substance)
@@ -128,7 +267,7 @@ namespace SlimesRevenge.Tests
             var slime = SpawnSlime();
             slime.Volume.Clear();
             slime.Volume.Add(Volume.CloneSubstance(substance));
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
             return slime;
         }
 
@@ -156,8 +295,8 @@ namespace SlimesRevenge.Tests
 
             if (creature is Slime)
             {
-                creature.SetMaxHitPoints(1);
-                creature.RefreshBodyTraits();
+                creature.SetMaxHitPoints(0);
+                creature.RefreshVolumeStatuses();
             }
             else if (creature is Rat)
             {

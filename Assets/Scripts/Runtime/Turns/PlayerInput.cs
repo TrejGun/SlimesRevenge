@@ -202,7 +202,7 @@ namespace SlimesRevenge
                 slime.Volume.UniqueKinds(),
                 canMess,
                 canCollect,
-                canDevour ? corpses : System.Array.Empty<Corpse>(),
+                canDevour ? corpses : System.Array.Empty<Creature>(),
                 substance => turns.TryMakeMess(substance),
                 () => turns.TryCollectPuddle(),
                 index => turns.TryDevourCorpse(index));

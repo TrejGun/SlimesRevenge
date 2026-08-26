@@ -5,6 +5,8 @@ namespace SlimesRevenge
         Slime,
         Rat,
         Cat,
-        Dog
+        Dog,
+        Bat,
+        Scorpion
     }
 }

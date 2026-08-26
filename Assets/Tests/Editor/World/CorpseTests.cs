@@ -30,7 +30,7 @@ namespace SlimesRevenge.Tests
             player.Volume.Add(new Water());
             player.Volume.Add(new Water());
             player.Volume.Add(new Water());
-            player.RefreshBodyTraits();
+            player.RefreshVolumeStatuses();
             var rat = Spawn<Rat>(new Vector2Int(2, 1));
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
@@ -44,6 +44,8 @@ namespace SlimesRevenge.Tests
             Assert.IsFalse(turns.Session.IsOccupied(new Vector2Int(2, 1)));
             var corpses = turns.Session.World.Floor.GetCorpses(new Vector2Int(2, 1));
             Assert.AreEqual(1, corpses.Count);
+            Assert.IsTrue(corpses[0].IsCorpse);
+            Assert.AreSame(rat, corpses[0]);
             Assert.AreEqual(1, corpses[0].Volume.UnitCount);
             // Decay tracks max HP (3), not blood units (1). Death resolve skipped aging.
             Assert.AreEqual(3, corpses[0].DecayTurnsLeft);
@@ -55,15 +57,14 @@ namespace SlimesRevenge.Tests
         {
             var slime = Spawn<Slime>(Vector2Int.zero);
             slime.Volume.Clear();
-            slime.RefreshBodyTraits();
-            var corpse = new Corpse(CreatureKind.Cat, new Volume(), Vector2Int.zero);
-            Cat.FillStarting(corpse.Volume);
-            Assert.AreEqual(2, corpse.Volume.UnitCount);
+            slime.RefreshVolumeStatuses();
+            var cat = SpawnCorpse<Cat>(Vector2Int.zero);
+            Assert.AreEqual(2, cat.Volume.UnitCount);
 
-            Assert.IsTrue(slime.Digestion.TryBegin(corpse));
+            Assert.IsTrue(slime.Digestion.TryBegin(cat));
             Assert.IsTrue(slime.Digestion.Tick(slime.Volume));
             Assert.AreEqual(1, slime.Volume.UnitCount);
-            Assert.AreEqual(1, corpse.Volume.UnitCount);
+            Assert.AreEqual(1, cat.Volume.UnitCount);
             Assert.IsTrue(slime.Digestion.Tick(slime.Volume));
             Assert.AreEqual(2, slime.Volume.UnitCount);
             Assert.IsFalse(slime.Digestion.IsBusy);
@@ -75,10 +76,8 @@ namespace SlimesRevenge.Tests
             // skip + 3 decrements (HP) — cat (5) still remains if left on the floor.
             var floor = new Floor();
             var cell = Vector2Int.zero;
-            var rat = new Corpse(CreatureKind.Rat, new Volume(), cell);
-            Rat.FillStarting(rat.Volume);
-            var cat = new Corpse(CreatureKind.Cat, new Volume(), cell);
-            Cat.FillStarting(cat.Volume);
+            var rat = SpawnCorpse<Rat>(cell);
+            var cat = SpawnCorpse<Cat>(cell);
             floor.AddCorpse(rat);
             floor.AddCorpse(cat);
 
@@ -96,6 +95,13 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(0, floor.GetCorpses(cell).Count);
         }
 
+        private T SpawnCorpse<T>(Vector2Int cell) where T : Creature
+        {
+            var creature = Spawn<T>(cell);
+            creature.BecomeCorpse();
+            return creature;
+        }
+
         private T Spawn<T>(Vector2Int cell) where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
@@ -110,16 +116,24 @@ namespace SlimesRevenge.Tests
                 {
                     Rat.FillStarting(creature.Volume);
                 }
+                else if (creature is Cat)
+                {
+                    Cat.FillStarting(creature.Volume);
+                }
             }
 
             if (creature is Slime)
             {
-                creature.SetMaxHitPoints(1);
-                creature.RefreshBodyTraits();
+                creature.SetMaxHitPoints(0);
+                creature.RefreshVolumeStatuses();
             }
             else if (creature is Rat)
             {
                 creature.SetMaxHitPoints(3);
+            }
+            else if (creature is Cat)
+            {
+                creature.SetMaxHitPoints(5);
             }
 
             return creature;

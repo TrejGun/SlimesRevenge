@@ -53,8 +53,8 @@ namespace SlimesRevenge.Tests.Duels
                 slime.Volume.Add(Clone(kind));
             }
 
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
             return slime;
         }
 
@@ -67,8 +67,8 @@ namespace SlimesRevenge.Tests.Duels
                 slime.Volume.Add(Clone(substance));
             }
 
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
             return slime;
         }
 
@@ -126,7 +126,7 @@ namespace SlimesRevenge.Tests.Duels
             switch (creature)
             {
                 case Slime:
-                    creature.SetMaxHitPoints(1);
+                    creature.SetMaxHitPoints(0);
                     break;
                 case Rat:
                     creature.SetMaxHitPoints(3);

@@ -40,7 +40,7 @@ namespace SlimesRevenge.Tests
         {
             var slime = Spawn<Slime>(new Vector2Int(1, 1));
             slime.Volume.Add(new Water());
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
             var rat = Spawn<Rat>(new Vector2Int(2, 1));
             Assert.AreEqual(3, rat.HitPoints);
 
@@ -76,7 +76,7 @@ namespace SlimesRevenge.Tests
             var slime = Spawn<Slime>(new Vector2Int(1, 1));
             slime.Volume.Clear();
             slime.Volume.Add(new Oil());
-            slime.RefreshBodyTraits();
+            slime.RefreshVolumeStatuses();
             var rat = Spawn<Rat>(new Vector2Int(2, 1));
 
             Assert.IsFalse(Combat.Attack(slime, rat, new Water()));
@@ -93,7 +93,7 @@ namespace SlimesRevenge.Tests
             };
             foreach (var substance in substances)
             {
-                Assert.AreEqual(1, substance.Damage);
+                Assert.AreEqual(1, substance.Power);
             }
         }
 
@@ -121,17 +121,16 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void SlimeDamage_SpendsVolumeBeforeLastHit()
+        public void SlimeDamage_SpendsVolume_DiesWhenEmpty()
         {
             var slime = Spawn<Slime>(Vector2Int.zero);
             Assert.AreEqual(6, slime.Volume.UnitCount);
+            Assert.AreEqual(0, slime.HitPoints);
             slime.Damage(1);
             Assert.AreEqual(5, slime.Volume.UnitCount);
             Assert.IsTrue(slime.IsAlive);
             slime.Volume.Clear();
-            slime.RefreshBodyTraits();
-            Assert.AreEqual(1, slime.HitPoints);
-            slime.Damage(1);
+            slime.RefreshVolumeStatuses();
             Assert.AreEqual(0, slime.HitPoints);
             Assert.IsFalse(slime.IsAlive);
         }
@@ -163,7 +162,7 @@ namespace SlimesRevenge.Tests
             switch (creature)
             {
                 case Slime:
-                    creature.SetMaxHitPoints(1);
+                    creature.SetMaxHitPoints(0);
                     break;
                 case Rat:
                     creature.SetMaxHitPoints(3);
@@ -179,7 +178,7 @@ namespace SlimesRevenge.Tests
 
             if (creature is Slime)
             {
-                creature.RefreshBodyTraits();
+                creature.RefreshVolumeStatuses();
             }
 
             return creature;

@@ -39,18 +39,22 @@ namespace SlimesRevenge.Tests
                 slime.Volume.Add(new Acid());
             }
 
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
             turns.Bind(world, slime);
 
-            var corpseVolume = new Volume();
-            corpseVolume.Add(new Water());
-            corpseVolume.Add(new Oil());
-            corpseVolume.Add(new Blood());
-            world.Floor.AddCorpse(new Corpse(CreatureKind.Dog, corpseVolume, cell));
+            var dog = SpawnObject("Dog").AddComponent<Dog>();
+            dog.PlaceOn(cell);
+            dog.Volume.Clear();
+            dog.Volume.Add(new Water());
+            dog.Volume.Add(new Oil());
+            dog.Volume.Add(new Blood());
+            dog.SetMaxHitPoints(10);
+            dog.BecomeCorpse();
+            world.Floor.AddCorpse(dog);
 
             Assert.IsTrue(turns.TryDevourCorpse(0));
             Assert.AreEqual(9, slime.Volume.UnitCount);
@@ -143,8 +147,8 @@ namespace SlimesRevenge.Tests
                 slime.Volume.Add(new Water());
             }
 
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
@@ -175,14 +179,49 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(4, slime.Volume.CountOf<Blood>());
         }
 
+        [Test]
+        public void LastVolumeHit_KillsSlime_EvenWhileDigestingCorpse()
+        {
+            // Empty volume = dead immediately. Digestion in the belly does not keep the slime alive.
+            var cell = Vector2Int.zero;
+            var slime = SpawnObject("Slime").AddComponent<Slime>();
+            slime.PlaceOn(cell);
+            slime.Volume.Clear();
+            slime.Volume.Add(new Blood());
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
+
+            var rat = SpawnObject("Rat").AddComponent<Rat>();
+            rat.PlaceOn(cell);
+            rat.Volume.Clear();
+            Rat.FillStarting(rat.Volume);
+            rat.SetMaxHitPoints(3);
+            rat.BecomeCorpse();
+            Assert.IsTrue(slime.Digestion.TryBegin(rat));
+            Assert.IsTrue(slime.Digestion.IsBusy);
+            Assert.AreEqual(1, slime.Volume.UnitCount);
+            Assert.AreEqual(1, rat.Volume.UnitCount);
+
+            var dog = SpawnObject("Dog").AddComponent<Dog>();
+            dog.PlaceOn(cell + Vector2Int.right);
+            dog.SetMaxHitPoints(10);
+            Assert.IsTrue(Combat.Attack(dog, slime));
+
+            Assert.IsFalse(slime.IsAlive);
+            Assert.AreEqual(0, slime.Volume.UnitCount);
+            Assert.IsTrue(slime.Digestion.IsBusy);
+            Assert.AreSame(rat, slime.Digestion.Current);
+            Assert.AreEqual(1, slime.Digestion.Current.Volume.UnitCount);
+        }
+
         private (Slime slime, TurnManager turns, Floor floor) SetupEmptySlimeOnCorpses(Vector2Int cell)
         {
             var world = new World(3, 3, TerrainType.Grass);
             var slime = SpawnObject("Slime").AddComponent<Slime>();
             slime.PlaceOn(cell);
             slime.Volume.Clear();
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
@@ -193,23 +232,39 @@ namespace SlimesRevenge.Tests
             return (slime, turns, world.Floor);
         }
 
-        private static void AddBeastCorpse(Floor floor, Vector2Int cell, CreatureKind kind)
+        private void AddBeastCorpse(Floor floor, Vector2Int cell, CreatureKind kind)
         {
-            var volume = new Volume();
+            Creature creature;
             switch (kind)
             {
                 case CreatureKind.Rat:
-                    Rat.FillStarting(volume);
+                    creature = SpawnObject("Rat").AddComponent<Rat>();
+                    creature.PlaceOn(cell);
+                    creature.Volume.Clear();
+                    Rat.FillStarting(creature.Volume);
+                    creature.SetMaxHitPoints(3);
                     break;
                 case CreatureKind.Cat:
-                    Cat.FillStarting(volume);
+                    creature = SpawnObject("Cat").AddComponent<Cat>();
+                    creature.PlaceOn(cell);
+                    creature.Volume.Clear();
+                    Cat.FillStarting(creature.Volume);
+                    creature.SetMaxHitPoints(5);
                     break;
                 case CreatureKind.Dog:
-                    Dog.FillStarting(volume);
+                    creature = SpawnObject("Dog").AddComponent<Dog>();
+                    creature.PlaceOn(cell);
+                    creature.Volume.Clear();
+                    Dog.FillStarting(creature.Volume);
+                    creature.SetMaxHitPoints(10);
                     break;
+                default:
+                    Assert.Fail($"Unexpected kind {kind}");
+                    return;
             }
 
-            floor.AddCorpse(new Corpse(kind, volume, cell));
+            creature.BecomeCorpse();
+            floor.AddCorpse(creature);
         }
 
         private static void AssertAllBlood(Volume volume)

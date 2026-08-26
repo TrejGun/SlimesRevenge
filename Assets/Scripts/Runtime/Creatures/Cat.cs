@@ -2,6 +2,8 @@ namespace SlimesRevenge
 {
     public sealed class Cat : Creature
     {
+        public override CreatureKind Kind => CreatureKind.Cat;
+
         public override CreaturePersonality Personality => CreaturePersonality.Passive;
 
         public static void FillStarting(Volume volume)
@@ -16,6 +18,15 @@ namespace SlimesRevenge
             {
                 FillStarting(Volume);
             }
+
+            EnsureInnateTraits();
+        }
+
+        protected override void SeedInnateTraits()
+        {
+            EnsureInnate<HatesRats>();
+            EnsureInnate<FearsDogs>();
+            EnsureInnate<FearsWater>();
         }
     }
 }

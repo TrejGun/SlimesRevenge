@@ -1,8 +1,8 @@
 namespace SlimesRevenge
 {
-    public sealed class Instability : StatusEffect
+    public sealed class Instability : OverTime
     {
-        public Instability(int duration = 2) : base(duration)
+        public Instability(int duration = DefaultDuration) : base(duration)
         {
         }
 

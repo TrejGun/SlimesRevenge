@@ -147,12 +147,13 @@ namespace SlimesRevenge.Tests
             var bottom = Spawn<Cat>(new Vector2Int(2, 4));
             var dog = Spawn<Dog>(new Vector2Int(3, 5));
             var session = Occupied(World.CreateGrass(), player, top, middle, bottom, dog);
+            var others = new List<Creature> { top, middle, bottom, dog };
             var cats = new[] { top.Cell, middle.Cell, bottom.Cell };
             var start = dog.Cell;
 
             Assert.AreEqual(2, GridStep.Chebyshev(player.Cell, dog.Cell));
 
-            dog.TakeTurn(session, player, new FixedRng());
+            dog.TakeTurn(session, player, new FixedRng(), others);
             Assert.AreNotEqual(start, dog.Cell);
             Assert.IsFalse(GridStep.IsAdjacent(dog.Cell, player.Cell), "A jump through the cats is not allowed.");
             Assert.GreaterOrEqual(GridStep.Chebyshev(dog.Cell, player.Cell), 2);
@@ -165,7 +166,7 @@ namespace SlimesRevenge.Tests
             var turns = 0;
             while (!GridStep.IsAdjacent(dog.Cell, player.Cell) && turns < 12)
             {
-                dog.TakeTurn(session, player, new FixedRng());
+                dog.TakeTurn(session, player, new FixedRng(), others);
                 foreach (var cat in cats)
                 {
                     Assert.AreNotEqual(cat, dog.Cell);
@@ -193,11 +194,12 @@ namespace SlimesRevenge.Tests
             };
             var dog = Spawn<Dog>(new Vector2Int(3, 5));
             var session = Occupied(World.CreateGrass(), player, cats[0], cats[1], cats[2], cats[3], cats[4], dog);
+            var others = new List<Creature> { cats[0], cats[1], cats[2], cats[3], cats[4], dog };
             var start = dog.Cell;
             var catCells = new[] { cats[0].Cell, cats[1].Cell, cats[2].Cell, cats[3].Cell, cats[4].Cell };
 
             Assert.AreEqual(2, GridStep.Chebyshev(player.Cell, dog.Cell));
-            dog.TakeTurn(session, player, new FixedRng());
+            dog.TakeTurn(session, player, new FixedRng(), others);
             Assert.AreNotEqual(start, dog.Cell);
             Assert.IsFalse(GridStep.IsAdjacent(dog.Cell, player.Cell));
             foreach (var cat in catCells)
@@ -209,7 +211,7 @@ namespace SlimesRevenge.Tests
             var turns = 0;
             while (!GridStep.IsAdjacent(dog.Cell, player.Cell) && turns < 16)
             {
-                dog.TakeTurn(session, player, new FixedRng());
+                dog.TakeTurn(session, player, new FixedRng(), others);
                 foreach (var cat in catCells)
                 {
                     Assert.AreNotEqual(cat, dog.Cell);
@@ -227,6 +229,8 @@ namespace SlimesRevenge.Tests
             var rat = Spawn<Rat>(Vector2Int.zero);
             var cat = Spawn<Cat>(Vector2Int.one);
             var dog = Spawn<Dog>(new Vector2Int(2, 2));
+            var bat = Spawn<Bat>(new Vector2Int(3, 3));
+            var scorpion = Spawn<Scorpion>(new Vector2Int(4, 4));
             Assert.AreEqual(5, rat.VisionRange);
             Assert.AreEqual(5, cat.VisionRange);
             Assert.AreEqual(5, dog.VisionRange);
@@ -236,6 +240,8 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(CreaturePersonality.Cowardly, rat.Personality);
             Assert.AreEqual(CreaturePersonality.Passive, cat.Personality);
             Assert.AreEqual(CreaturePersonality.Aggressive, dog.Personality);
+            Assert.AreEqual(CreaturePersonality.Passive, bat.Personality);
+            Assert.AreEqual(CreaturePersonality.Passive, scorpion.Personality);
         }
 
         [Test]
@@ -257,7 +263,7 @@ namespace SlimesRevenge.Tests
             player.Volume.Add(new Water());
             player.Volume.Add(new Water());
             player.Volume.Add(new Water());
-            player.RefreshBodyTraits();
+            player.RefreshVolumeStatuses();
             var rat = Spawn<Rat>(new Vector2Int(1, 0));
             var dog = Spawn<Dog>(new Vector2Int(3, 0));
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
@@ -273,6 +279,43 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(new Vector2Int(1, 0), dog.Cell);
             Assert.IsTrue(turns.Session.IsOccupied(dog.Cell));
             Assert.IsFalse(turns.Session.IsOccupied(new Vector2Int(3, 0)));
+        }
+
+        [Test]
+        public void Cat_HuntsRatWhenIdleOrWandering()
+        {
+            var player = Spawn<Slime>(new Vector2Int(0, 0));
+            var cat = Spawn<Cat>(new Vector2Int(3, 0));
+            var rat = Spawn<Rat>(new Vector2Int(4, 0));
+            var session = Occupied(World.CreateGrass(), player, cat, rat);
+            var others = new List<Creature> { cat, rat };
+
+            Assert.IsNotNull(cat.FindStatus<HatesRats>());
+            Assert.AreEqual(CreatureIntent.Attack, CreatureBrain.Decide(cat, player, session, new FixedRng(), others));
+
+            var ratHp = rat.HitPoints;
+            cat.TakeTurn(session, player, new FixedRng(), others);
+            Assert.AreEqual(ratHp - 1, rat.HitPoints);
+            Assert.AreEqual(6, player.Volume.UnitCount);
+        }
+
+        [Test]
+        public void Dog_HuntsCatWhenIdleAwayFromPlayer()
+        {
+            var player = Spawn<Slime>(new Vector2Int(0, 0));
+            var dog = Spawn<Dog>(new Vector2Int(8, 8));
+            var cat = Spawn<Cat>(new Vector2Int(8, 7));
+            var session = Occupied(World.CreateGrass(), player, dog, cat);
+            var others = new List<Creature> { dog, cat };
+
+            Assert.IsFalse(CreatureMoves.CanSee(dog, player));
+            Assert.IsTrue(CreatureMoves.CanSee(dog, cat));
+            Assert.IsNotNull(dog.FindStatus<HatesCats>());
+            Assert.AreEqual(CreatureIntent.Attack, CreatureBrain.Decide(dog, player, session, new FixedRng(), others));
+
+            var catHp = cat.HitPoints;
+            dog.TakeTurn(session, player, new FixedRng(), others);
+            Assert.AreEqual(catHp - 1, cat.HitPoints);
         }
 
         private T Spawn<T>(Vector2Int cell) where T : Creature
@@ -295,13 +338,19 @@ namespace SlimesRevenge.Tests
                     case Dog:
                         Dog.FillStarting(creature.Volume);
                         break;
+                    case Bat:
+                        Bat.FillStarting(creature.Volume);
+                        break;
+                    case Scorpion:
+                        Scorpion.FillStarting(creature.Volume);
+                        break;
                 }
             }
 
             switch (creature)
             {
                 case Slime:
-                    creature.SetMaxHitPoints(1);
+                    creature.SetMaxHitPoints(0);
                     break;
                 case Rat:
                     creature.SetMaxHitPoints(3);
@@ -313,13 +362,20 @@ namespace SlimesRevenge.Tests
                     creature.SetSpeed(2);
                     creature.SetMaxHitPoints(10);
                     break;
+                case Bat:
+                    creature.SetMaxHitPoints(3);
+                    break;
+                case Scorpion:
+                    creature.SetMaxHitPoints(3);
+                    break;
             }
 
             if (creature is Slime)
             {
-                creature.RefreshBodyTraits();
+                creature.RefreshVolumeStatuses();
             }
 
+            creature.EnsureInnateTraits();
             return creature;
         }
 

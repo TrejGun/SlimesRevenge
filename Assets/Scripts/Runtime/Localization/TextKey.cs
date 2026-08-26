@@ -18,11 +18,19 @@ namespace SlimesRevenge
         public const string StatusCorroding = "status.corroding";
         public const string StatusInstability = "status.instability";
         public const string StatusBurning = "status.burning";
-        public const string StatusDousing = "status.dousing";
-        public const string StatusOiled = "status.oiled";
+        public const string StatusWet = "status.wet";
         public const string StatusFireproof = "status.fireproof";
         public const string StatusFlammable = "status.flammable";
         public const string StatusRetaliation = "status.retaliation";
+        public const string StatusRegeneration = "status.regeneration";
+        public const string StatusVampirism = "status.vampirism";
+        public const string StatusPoisonous = "status.poisonous";
+        public const string StatusHatesRats = "status.hates_rats";
+        public const string StatusHatesCats = "status.hates_cats";
+        public const string StatusFearsSlimes = "status.fears_slimes";
+        public const string StatusFearsCats = "status.fears_cats";
+        public const string StatusFearsDogs = "status.fears_dogs";
+        public const string StatusFearsWater = "status.fears_water";
 
         public static readonly string[] All =
         {
@@ -42,11 +50,19 @@ namespace SlimesRevenge
             StatusCorroding,
             StatusInstability,
             StatusBurning,
-            StatusDousing,
-            StatusOiled,
+            StatusWet,
             StatusFireproof,
             StatusFlammable,
-            StatusRetaliation
+            StatusRetaliation,
+            StatusRegeneration,
+            StatusVampirism,
+            StatusPoisonous,
+            StatusHatesRats,
+            StatusHatesCats,
+            StatusFearsSlimes,
+            StatusFearsCats,
+            StatusFearsDogs,
+            StatusFearsWater
         };
     }
 }

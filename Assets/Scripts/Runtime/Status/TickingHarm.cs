@@ -1,20 +1,24 @@
 namespace SlimesRevenge
 {
     /// <summary>
-    /// HP DoT that pulses once at the start of each of the victim's turns
-    /// (see TurnManager creature/player turn start), for <see cref="StatusEffect.Remaining"/> turns.
+    /// HP damage-over-time: pulses once at the start of each of the victim's turns
+    /// for <see cref="StatusEffect.Remaining"/> turns.
+    /// Each subclass declares its own <see cref="PulsePower"/> per pulse.
     /// </summary>
-    public abstract class TickingHarm : StatusEffect
+    public abstract class TickingHarm : OverTime
     {
-        protected TickingHarm(int duration = 3) : base(duration)
+        protected TickingHarm(int duration = DefaultDuration) : base(duration)
         {
         }
 
-        protected virtual int PulseDamage(Creature creature) => 1;
+        /// <summary>Base HP removed each pulse (before status multipliers such as flammable).</summary>
+        public abstract int PulsePower { get; }
+
+        protected virtual int PulsePowerFor(Creature creature) => PulsePower;
 
         protected override void OnPulse(Creature creature)
         {
-            creature?.Damage(PulseDamage(creature));
+            creature?.Damage(PulsePowerFor(creature), blockedByArmor: false);
         }
     }
 }

@@ -73,24 +73,46 @@ namespace SlimesRevenge
         }
 
         /// <summary>
+        /// Removes the newest matching unit (search from the stack end). Unlike
+        /// <see cref="TryRemove"/>, prefers the most recently added match even when
+        /// something else sits on top.
+        /// </summary>
+        public bool TryRemoveLast<T>() where T : Substance
+        {
+            for (var i = units.Count - 1; i >= 0; i--)
+            {
+                if (units[i].Substance is T)
+                {
+                    units.RemoveAt(i);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Stack pop: newest units first (LIFO). Used by combat shield damage and digestion.
         /// <see cref="Add"/> appends, so the most recently gained matter is lost or digested first.
         /// </summary>
-        public int Damage(int amount)
+        /// <param name="removed">Optional: each popped substance, tip-first (same order as hits land).</param>
+        public int Damage(int amount, ICollection<Substance> removed = null)
         {
             if (amount <= 0)
             {
                 return 0;
             }
 
-            var removed = 0;
-            while (removed < amount && units.Count > 0)
+            var count = 0;
+            while (count < amount && units.Count > 0)
             {
+                var substance = units[units.Count - 1].Substance;
                 units.RemoveAt(units.Count - 1);
-                removed++;
+                removed?.Add(substance);
+                count++;
             }
 
-            return removed;
+            return count;
         }
 
         /// <summary>Peek and remove the newest unit (same end as <see cref="Damage"/>).</summary>
@@ -140,6 +162,12 @@ namespace SlimesRevenge
             return count;
         }
 
+        /// <summary>
+        /// Minimum share of units (percent) one substance needs for volume dominance.
+        /// Example: 8 of 10 = 80% qualifies; 7 of 9 ≈ 77% does not.
+        /// </summary>
+        public const int DominantPercent = 80;
+
         public bool TryDominant(out Substance sample)
         {
             sample = null;
@@ -169,7 +197,7 @@ namespace SlimesRevenge
                 }
             }
 
-            if (best == null || bestCount * 5 < units.Count * 4)
+            if (best == null || bestCount * 100 < units.Count * DominantPercent)
             {
                 return false;
             }
@@ -183,7 +211,7 @@ namespace SlimesRevenge
             var copy = new Volume();
             foreach (var unit in units)
             {
-                copy.Add(CloneSubstance(unit.Substance));
+                copy.Add(unit.Substance?.Clone());
             }
 
             return copy;
@@ -209,39 +237,10 @@ namespace SlimesRevenge
             units.Clear();
         }
 
+        /// <summary>Null-safe wrapper around <see cref="Substance.Clone"/>.</summary>
         public static Substance CloneSubstance(Substance substance)
         {
-            if (substance is Water)
-            {
-                return new Water();
-            }
-
-            if (substance is Oil)
-            {
-                return new Oil();
-            }
-
-            if (substance is Poison)
-            {
-                return new Poison();
-            }
-
-            if (substance is Acid)
-            {
-                return new Acid();
-            }
-
-            if (substance is Blood)
-            {
-                return new Blood();
-            }
-
-            if (substance is Lava)
-            {
-                return new Lava();
-            }
-
-            return substance;
+            return substance?.Clone();
         }
     }
 }

@@ -114,8 +114,8 @@ namespace SlimesRevenge.Tests
             switch (creature)
             {
                 case Slime:
-                    creature.SetMaxHitPoints(1);
-                    creature.RefreshBodyTraits();
+                    creature.SetMaxHitPoints(0);
+                    creature.RefreshVolumeStatuses();
                     break;
                 case Rat:
                     creature.SetMaxHitPoints(3);

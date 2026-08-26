@@ -17,27 +17,29 @@ namespace SlimesRevenge
 
             if (attacker is Slime)
             {
-                attacker.RefreshBodyTraits();
+                attacker.RefreshVolumeStatuses();
             }
 
-            var damage = 1;
-            if (substance is Lava && target.FindStatus<Flammable>() != null)
-            {
-                damage = 2;
-            }
+            var power = substance.StrikePower(target);
 
-            // Snapshot before Damage: volume shield can drop dominance and clear Retaliation.
+            // Snapshot before Damage: volume hits can drop dominance and clear retaliation.
             var retaliation = target.FindStatus<Retaliation>();
-            target.Damage(damage);
+
+            // Corrosion strips armor first; Power then faces remaining armor as flat DR.
+            target.StripArmor(substance.Corrosion);
+            target.Damage(power, out var tipStruck, blockedByArmor: true);
+
             if (target.IsAlive)
             {
                 substance.Apply(target);
                 retaliation?.Retort?.Apply(attacker);
             }
 
+            attacker.FindStatus<Vampirism>()?.OnStrike(attacker, tipStruck);
+
             if (target is Slime)
             {
-                target.RefreshBodyTraits();
+                target.RefreshVolumeStatuses();
             }
 
             return true;
@@ -52,15 +54,18 @@ namespace SlimesRevenge
             }
 
             var retaliation = target.FindStatus<Retaliation>();
-            target.Damage(1);
+            target.Damage(1, out var tipStruck);
             if (target.IsAlive && attacker != null)
             {
                 retaliation?.Retort?.Apply(attacker);
+                attacker.FindStatus<Poisonous>()?.ApplyOnHit(target);
             }
+
+            attacker?.FindStatus<Vampirism>()?.OnStrike(attacker, tipStruck);
 
             if (target is Slime)
             {
-                target.RefreshBodyTraits();
+                target.RefreshVolumeStatuses();
             }
 
             return true;

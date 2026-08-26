@@ -1,31 +1,41 @@
+using System.Collections.Generic;
 using Unity.Behavior;
-using UnityEngine;
 
 namespace SlimesRevenge
 {
     /// <summary>
-    /// Turn decide: Push → one BehaviorGraph tick → ChosenIntent → Pop.
-    /// Execute stays in <see cref="CreatureMoves.Perform"/>.
+    /// Turn decide. Prefer the no-arg form when <see cref="CreatureTurnContext"/> is already pushed
+    /// (see <see cref="Creature.TakeTurn"/>). The overload pushes context for tests / callers.
     /// </summary>
     public static class CreatureBrain
     {
-        public static CreatureIntent Decide(Creature self, Creature player, GameSession session, IRng rng)
+        public static CreatureIntent Decide(Creature self)
         {
             if (self == null)
             {
                 return CreatureIntent.Idle;
             }
 
-            CreatureTurnContext.Push(session, player, rng);
+            var graph = CreaturePolicyGraphs.For(self.Personality);
+            CreaturePolicyGraphs.BindOwner(graph, self.gameObject);
+            graph.End();
+            graph.Start();
+            graph.Tick();
+            var intent = CreatureTurnContext.ChosenIntent;
+            return intent == CreatureIntent.None ? CreatureIntent.Idle : intent;
+        }
+
+        public static CreatureIntent Decide(
+            Creature self,
+            Creature player,
+            GameSession session,
+            IRng rng,
+            IReadOnlyList<Creature> others = null)
+        {
+            CreatureTurnContext.Push(session, player, rng, others);
             try
             {
-                var graph = CreaturePolicyGraphs.For(self.Personality);
-                CreaturePolicyGraphs.BindOwner(graph, self.gameObject);
-                graph.End();
-                graph.Start();
-                graph.Tick();
-                var intent = CreatureTurnContext.ChosenIntent;
-                return intent == CreatureIntent.None ? CreatureIntent.Idle : intent;
+                return CreatureHunt.Redirect(self, Decide(self), others);
             }
             finally
             {

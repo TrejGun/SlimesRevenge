@@ -6,7 +6,7 @@ namespace SlimesRevenge
     public sealed class Floor
     {
         private readonly Dictionary<Vector2Int, Puddle> puddles = new Dictionary<Vector2Int, Puddle>();
-        private readonly Dictionary<Vector2Int, List<Corpse>> corpses = new Dictionary<Vector2Int, List<Corpse>>();
+        private readonly Dictionary<Vector2Int, List<Creature>> corpses = new Dictionary<Vector2Int, List<Creature>>();
 
         public Puddle GetPuddle(Vector2Int cell)
         {
@@ -24,6 +24,37 @@ namespace SlimesRevenge
             return true;
         }
 
+        public bool TryRemovePuddle(Vector2Int cell)
+        {
+            return puddles.Remove(cell);
+        }
+
+        /// <summary>
+        /// Floor contact: non-slimes get <see cref="Substance.Apply"/> from the puddle and
+        /// consume it; slimes leave the puddle alone.
+        /// </summary>
+        public void ApplyContact(Creature creature)
+        {
+            if (creature == null)
+            {
+                return;
+            }
+
+            var cell = creature.Cell;
+            if (!puddles.TryGetValue(cell, out var puddle))
+            {
+                return;
+            }
+
+            if (creature is Slime)
+            {
+                return;
+            }
+
+            puddle.Substance.Apply(creature);
+            puddles.Remove(cell);
+        }
+
         public bool TryCollectPuddle(Vector2Int cell, out Substance substance)
         {
             substance = null;
@@ -37,28 +68,28 @@ namespace SlimesRevenge
             return true;
         }
 
-        public IReadOnlyList<Corpse> GetCorpses(Vector2Int cell)
+        public IReadOnlyList<Creature> GetCorpses(Vector2Int cell)
         {
-            return corpses.TryGetValue(cell, out var list) ? list : System.Array.Empty<Corpse>();
+            return corpses.TryGetValue(cell, out var list) ? list : System.Array.Empty<Creature>();
         }
 
-        public void AddCorpse(Corpse corpse)
+        public void AddCorpse(Creature corpse)
         {
-            if (corpse == null)
+            if (corpse == null || !corpse.IsCorpse)
             {
                 return;
             }
 
             if (!corpses.TryGetValue(corpse.Cell, out var list))
             {
-                list = new List<Corpse>();
+                list = new List<Creature>();
                 corpses[corpse.Cell] = list;
             }
 
             list.Add(corpse);
         }
 
-        public bool TryTakeCorpse(Vector2Int cell, int index, out Corpse corpse)
+        public bool TryTakeCorpse(Vector2Int cell, int index, out Creature corpse)
         {
             corpse = null;
             if (!corpses.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
@@ -83,10 +114,18 @@ namespace SlimesRevenge
             {
                 for (var i = pair.Value.Count - 1; i >= 0; i--)
                 {
-                    pair.Value[i].Tick();
-                    if (pair.Value[i].Expired)
+                    var body = pair.Value[i];
+                    if (body == null)
                     {
                         pair.Value.RemoveAt(i);
+                        continue;
+                    }
+
+                    body.TickCorpseDecay();
+                    if (body.CorpseExpired)
+                    {
+                        pair.Value.RemoveAt(i);
+                        DestroyCorpse(body);
                     }
                 }
 
@@ -99,6 +138,23 @@ namespace SlimesRevenge
             foreach (var cell in empty)
             {
                 corpses.Remove(cell);
+            }
+        }
+
+        private static void DestroyCorpse(Creature body)
+        {
+            if (body == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
+            {
+                Object.Destroy(body.gameObject);
+            }
+            else
+            {
+                Object.DestroyImmediate(body.gameObject);
             }
         }
     }

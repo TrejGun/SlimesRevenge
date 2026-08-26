@@ -80,5 +80,19 @@ namespace SlimesRevenge.Tests
             Assert.IsInstanceOf<Water>(volume.Units[2].Substance);
             Assert.IsFalse(volume.TryReplace<Oil>(new Poison()));
         }
+
+        [Test]
+        public void TryRemoveLast_TakesNewestMatchEvenWhenNotOnTop()
+        {
+            var volume = new Volume();
+            volume.Fill(new Blood(), new Water(), new Blood(), new Water());
+
+            Assert.IsTrue(volume.TryRemoveLast<Blood>());
+            Assert.AreEqual(3, volume.UnitCount);
+            Assert.IsInstanceOf<Blood>(volume.Units[0].Substance);
+            Assert.IsInstanceOf<Water>(volume.Units[1].Substance);
+            Assert.IsInstanceOf<Water>(volume.Units[2].Substance);
+            Assert.IsFalse(volume.TryRemoveLast<Oil>());
+        }
     }
 }

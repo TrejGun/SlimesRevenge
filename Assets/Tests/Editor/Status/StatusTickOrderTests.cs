@@ -29,8 +29,8 @@ namespace SlimesRevenge.Tests
             var slime = SpawnObject("Slime").AddComponent<Slime>();
             slime.PlaceOn(Vector2Int.zero);
             slime.Volume.Clear();
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
 
             var first = new PulseProbe();
             var second = new PulseProbe();
@@ -49,8 +49,9 @@ namespace SlimesRevenge.Tests
             var slime = SpawnObject("Slime").AddComponent<Slime>();
             slime.PlaceOn(new Vector2Int(4, 0));
             slime.Volume.Clear();
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.Volume.Add(new Blood());
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
             slime.AddStatus(new Burning());
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
@@ -72,8 +73,9 @@ namespace SlimesRevenge.Tests
             var slime = SpawnObject("Slime").AddComponent<Slime>();
             slime.PlaceOn(new Vector2Int(4, 0));
             slime.Volume.Clear();
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.Volume.Add(new Blood());
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
             slime.AddStatus(new Burning());
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
@@ -81,9 +83,9 @@ namespace SlimesRevenge.Tests
             turns.TrySoftcoreContinue = () =>
             {
                 slime.gameObject.SetActive(true);
-                slime.SetMaxHitPoints(1);
+                slime.SetMaxHitPoints(0);
                 slime.Volume.Add(new Water());
-                slime.RefreshBodyTraits();
+                slime.RefreshVolumeStatuses();
                 return true;
             };
             turns.Bind(new World(10, 1, TerrainType.Grass), slime);
@@ -99,8 +101,8 @@ namespace SlimesRevenge.Tests
             var slime = SpawnObject("Slime").AddComponent<Slime>();
             slime.PlaceOn(new Vector2Int(4, 0));
             slime.Volume.Clear();
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
 
             var dog = SpawnObject("Dog").AddComponent<Dog>();
             dog.PlaceOn(new Vector2Int(5, 0));

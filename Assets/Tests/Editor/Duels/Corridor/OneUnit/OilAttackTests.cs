@@ -3,7 +3,7 @@ using NUnit.Framework;
 
 namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
 {
-    /// <summary>1 unit Oil: slime dies; beast slowed (Instability + Oiled) at MaxHitPoints−1.</summary>
+    /// <summary>1 unit Oil: slime dies; beast slowed (Instability + Flammable) at MaxHitPoints−1.</summary>
     public class OilAttackTests : DuelFixture
     {
         public static IEnumerable<TestCaseData> Cases()
@@ -22,7 +22,7 @@ namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
             Assert.IsTrue(duel.Beast.IsAlive);
             Assert.AreEqual(expectedHitPoints, duel.Beast.HitPoints);
             Assert.IsNotNull(duel.Beast.FindStatus<Instability>());
-            Assert.IsNotNull(duel.Beast.FindStatus<Oiled>());
+            Assert.IsNotNull(duel.Beast.FindStatus<Flammable>());
         }
 
         private static TestCaseData Case(System.Type beastType, int hits)

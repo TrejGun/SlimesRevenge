@@ -21,7 +21,7 @@ namespace SlimesRevenge
         private Action onCollect;
         private Action<int> onDevour;
         private IReadOnlyList<Substance> kinds;
-        private IReadOnlyList<Corpse> corpses;
+        private IReadOnlyList<Creature> corpses;
 
         public bool BlocksInput => canvas != null && canvas.enabled || suppressWorldInput;
 
@@ -72,7 +72,7 @@ namespace SlimesRevenge
             IReadOnlyList<Substance> substances,
             bool canMess,
             bool canCollect,
-            IReadOnlyList<Corpse> floorCorpses,
+            IReadOnlyList<Creature> floorCorpses,
             Action<Substance> mess,
             Action collect,
             Action<int> devour)

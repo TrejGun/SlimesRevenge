@@ -9,8 +9,9 @@ namespace SlimesRevenge
         [SerializeField] private int visionRange = 5;
         [SerializeField] private int speed = 1;
         [SerializeField] private int maxHitPoints = 1;
-        private readonly List<StatusEffect> statuses = new List<StatusEffect>();
+        private readonly StatusQueue statusQueue = new StatusQueue();
         private Digestion digestion;
+        private readonly VolumeDominance volumeDominance = new VolumeDominance();
 
         public Volume Volume => volume;
 
@@ -27,7 +28,7 @@ namespace SlimesRevenge
             get
             {
                 var value = Mathf.Max(1, speed);
-                foreach (var status in statuses)
+                foreach (var status in statusQueue.AsReadOnly)
                 {
                     value += status.SpeedModifier;
                 }
@@ -36,7 +37,7 @@ namespace SlimesRevenge
             }
         }
 
-        public IReadOnlyList<StatusEffect> Statuses => statuses;
+        public IReadOnlyList<StatusEffect> Statuses => statusQueue.AsReadOnly;
 
         public bool InCombat => Aggroed;
 
@@ -44,13 +45,46 @@ namespace SlimesRevenge
 
         public Vector2Int Cell { get; private set; }
 
+        /// <summary>Turns to keep chasing a last-known cell after losing sight.</summary>
+        public const int PursuitMemoryTurns = 3;
+
+        /// <summary>Last known cell of hunted prey (or approach goal).</summary>
+        public Vector2Int? PursuitCell { get; private set; }
+
+        public int PursuitMemoryLeft { get; private set; }
+
+        /// <summary>Waypoint while fleeing a predator.</summary>
+        public Vector2Int? FleeCell { get; private set; }
+
         public virtual CreaturePersonality Personality => CreaturePersonality.Aggressive;
 
-        public virtual bool UsesVolumeAsShield => false;
+        public abstract CreatureKind Kind { get; }
 
-        public bool IsAlive => gameObject.activeInHierarchy && (UsesVolumeAsShield
-            ? Volume.UnitCount > 0 || HitPoints > 0
+        /// <summary>
+        /// Flat strike/melee damage reduction before HP. Not spent on normal hits (DR).
+        /// Strike <see cref="Substance.Corrosion"/> strips armor first; remaining armor still
+        /// blocks <see cref="Substance.Power"/> on the same hit.
+        /// <see cref="Corroding"/> pulses strip <see cref="Corroding.Corrosion"/> before HP.
+        /// </summary>
+        public int Armor { get; private set; }
+
+        /// <summary>
+        /// Slime lives only while its volume stack has matter. Everyone else: HP &gt; 0.
+        /// Corpses stay in the scene but are not alive.
+        /// </summary>
+        public bool IsAlive => gameObject.activeInHierarchy && !IsCorpse && (this is Slime
+            ? Volume.UnitCount > 0
             : HitPoints > 0);
+
+        /// <summary>Dead body still present for devour / future revive; not an actor.</summary>
+        public bool IsCorpse { get; private set; }
+
+        /// <summary>Turns until the corpse vanishes; seeded from <see cref="MaxHitPoints"/>.</summary>
+        public int DecayTurnsLeft { get; private set; }
+
+        public bool CorpseExpired => IsCorpse && (DecayTurnsLeft <= 0 || Volume.UnitCount == 0);
+
+        private bool skipCorpseAging;
 
         public void SetSpeed(int value)
         {
@@ -59,8 +93,24 @@ namespace SlimesRevenge
 
         public void SetMaxHitPoints(int value)
         {
-            maxHitPoints = Mathf.Max(1, value);
+            maxHitPoints = Mathf.Max(0, value);
             HitPoints = maxHitPoints;
+        }
+
+        public void SetArmor(int value)
+        {
+            Armor = Mathf.Max(0, value);
+        }
+
+        /// <summary>Strip armor by <paramref name="amount"/> (not below 0).</summary>
+        public void StripArmor(int amount = 1)
+        {
+            if (amount <= 0 || Armor <= 0)
+            {
+                return;
+            }
+
+            Armor = Mathf.Max(0, Armor - amount);
         }
 
         public void MarkAggro()
@@ -73,55 +123,110 @@ namespace SlimesRevenge
             Aggroed = false;
         }
 
-        public T FindStatus<T>() where T : StatusEffect
+        public void RememberPursuit(Vector2Int cell)
         {
-            for (var i = 0; i < statuses.Count; i++)
+            PursuitCell = cell;
+            PursuitMemoryLeft = PursuitMemoryTurns;
+        }
+
+        public void ClearPursuit()
+        {
+            PursuitCell = null;
+            PursuitMemoryLeft = 0;
+        }
+
+        public void TickPursuitMemory()
+        {
+            if (PursuitCell == null)
             {
-                if (statuses[i] is T match)
-                {
-                    return match;
-                }
+                return;
             }
 
-            return null;
+            PursuitMemoryLeft = Mathf.Max(0, PursuitMemoryLeft - 1);
+            if (PursuitMemoryLeft <= 0)
+            {
+                ClearPursuit();
+            }
+        }
+
+        public void SetFleeCell(Vector2Int cell)
+        {
+            FleeCell = cell;
+        }
+
+        public void ClearFlee()
+        {
+            FleeCell = null;
+        }
+
+        public T FindStatus<T>() where T : StatusEffect
+        {
+            return statusQueue.Find<T>(volumeDominance);
+        }
+
+        public bool HasStatus<T>() where T : StatusEffect
+        {
+            return FindStatus<T>() != null;
         }
 
         public int CountStatus<T>() where T : StatusEffect
         {
-            var count = 0;
-            for (var i = 0; i < statuses.Count; i++)
-            {
-                if (statuses[i] is T)
-                {
-                    count++;
-                }
-            }
-
-            return count;
-        }
-
-        public void Extinguish()
-        {
-            for (var i = statuses.Count - 1; i >= 0; i--)
-            {
-                if (statuses[i] is Burning)
-                {
-                    statuses.RemoveAt(i);
-                }
-            }
+            return statusQueue.CountOf<T>(volumeDominance);
         }
 
         public virtual void Damage(int amount)
         {
+            Damage(amount, out _, blockedByArmor: true);
+        }
+
+        public virtual void Damage(int amount, bool blockedByArmor)
+        {
+            Damage(amount, out _, blockedByArmor);
+        }
+
+        /// <summary>
+        /// Apply damage. Slime: pops volume tip (newest first). Others: optional armor DR, then HP.
+        /// <paramref name="tipStruck"/> is the first volume unit knocked off a slime (else null).
+        /// </summary>
+        public virtual void Damage(int amount, out Substance tipStruck)
+        {
+            Damage(amount, out tipStruck, blockedByArmor: true);
+        }
+
+        /// <summary>
+        /// Apply damage. Slime: pops volume tip (newest first). Others: optional armor DR, then HP.
+        /// <paramref name="tipStruck"/> is the first volume unit knocked off a slime (else null).
+        /// Pass <paramref name="blockedByArmor"/> false for status pulses that ignore DR.
+        /// </summary>
+        public virtual void Damage(int amount, out Substance tipStruck, bool blockedByArmor)
+        {
+            tipStruck = null;
             if (amount <= 0 || !IsAlive)
             {
                 return;
             }
 
-            if (UsesVolumeAsShield && Volume.UnitCount > 0)
+            if (this is Slime)
             {
-                var taken = Volume.Damage(amount);
-                amount -= taken;
+                var popped = new List<Substance>();
+                Volume.Damage(amount, popped);
+                if (popped.Count > 0)
+                {
+                    tipStruck = popped[0];
+                }
+
+                if (IsAlive)
+                {
+                    RefreshVolumeStatuses();
+                }
+
+                return;
+            }
+
+            // Armor = flat strike DR (not consumed by Power). Corrosion strips it before this call.
+            if (blockedByArmor && Armor > 0)
+            {
+                amount -= Mathf.Min(Armor, amount);
                 if (amount <= 0)
                 {
                     return;
@@ -131,109 +236,87 @@ namespace SlimesRevenge
             HitPoints = Mathf.Max(0, HitPoints - amount);
         }
 
+        public void Heal(int amount)
+        {
+            if (amount <= 0 || !IsAlive)
+            {
+                return;
+            }
+
+            HitPoints = Mathf.Min(maxHitPoints, HitPoints + amount);
+        }
+
         public void AddStatus(StatusEffect effect)
         {
-            if (effect == null)
+            statusQueue.Add(effect, volumeDominance);
+        }
+
+        public bool ClearStatus<T>() where T : StatusEffect
+        {
+            return statusQueue.Clear<T>();
+        }
+
+        /// <summary>Idempotent innate seeding; override in concrete animals.</summary>
+        public void EnsureInnateTraits()
+        {
+            SeedInnateTraits();
+        }
+
+        protected virtual void SeedInnateTraits()
+        {
+        }
+
+        protected void EnsureInnate<T>() where T : InnateTrait, new()
+        {
+            if (FindStatus<T>() == null)
+            {
+                AddStatus(new T());
+            }
+        }
+
+        /// <summary>
+        /// Sync slime volume dominance via <see cref="VolumeDominance"/>.
+        /// </summary>
+        public void RefreshVolumeStatuses()
+        {
+            if (this is not Slime)
             {
                 return;
             }
 
-            if (effect is Burning)
-            {
-                if (FindStatus<Fireproof>() != null)
-                {
-                    return;
-                }
-
-                effect.Extend(Oiled.FireTurns * CountStatus<Oiled>());
-            }
-
-            statuses.Add(effect);
+            volumeDominance.Refresh(Volume, this, statusQueue.Items);
         }
 
-        public void OnStruck(Creature attacker)
+        /// <summary>
+        /// Start-of-turn status pass: delegates FIFO pulse to <see cref="StatusQueue"/>.
+        /// After each pulse, <see cref="RefreshVolumeStatuses"/> may edit the queue.
+        /// </summary>
+        public void RefreshStatuses()
         {
-            FindStatus<Retaliation>()?.Retort?.Apply(attacker);
+            statusQueue.Pulse(this, RefreshVolumeStatuses);
         }
 
-        public void RefreshBodyTraits()
+        /// <summary>Obsolete name for <see cref="RefreshStatuses"/>.</summary>
+        public void TickStatuses() => RefreshStatuses();
+
+        public void TakeTurn(
+            GameSession session,
+            Creature player,
+            IRng rng,
+            System.Collections.Generic.IReadOnlyList<Creature> others = null)
         {
-            for (var i = statuses.Count - 1; i >= 0; i--)
+            CreatureTurnContext.Push(session, player, rng, others);
+            try
             {
-                if (statuses[i] is BodyTrait)
-                {
-                    statuses.RemoveAt(i);
-                }
+                var intent = CreatureHunt.Redirect(this, CreatureBrain.Decide(this), others);
+                var target = CreatureTurnContext.FocusTarget ?? player;
+                CreatureMoves.Perform(intent, this, target, session, rng);
+                CreatureHunt.AfterAct(this, intent, target, others);
             }
-
-            if (!UsesVolumeAsShield || !Volume.TryDominant(out var dominant))
+            finally
             {
-                return;
+                CreatureTurnContext.Pop();
             }
-
-            if (dominant is Water)
-            {
-                statuses.Add(new Fireproof());
-                Extinguish();
-                statuses.Add(new Retaliation(new Water()));
-            }
-            else if (dominant is Oil)
-            {
-                statuses.Add(new Flammable());
-                statuses.Add(new Retaliation(new Oil()));
-            }
-            else if (dominant is Poison)
-            {
-                statuses.Add(new Retaliation(new Poison()));
-            }
-            else if (dominant is Acid)
-            {
-                statuses.Add(new Retaliation(new Acid()));
-            }
-            else if (dominant is Lava)
-            {
-                statuses.Add(new Retaliation(new Lava()));
-            }
-            else if (dominant is Blood)
-            {
-                statuses.Add(new Retaliation(new Blood()));
-            }
-        }
-
-        public void TickStatuses()
-        {
-            // Application order (oldest first). Stop if a pulse empties volume / kills.
-            var snapshot = statuses.ToArray();
-            for (var i = 0; i < snapshot.Length; i++)
-            {
-                var effect = snapshot[i];
-                if (!statuses.Contains(effect))
-                {
-                    continue;
-                }
-
-                effect.Tick(this);
-                if (effect.Expired)
-                {
-                    statuses.Remove(effect);
-                }
-
-                if (!IsAlive)
-                {
-                    break;
-                }
-            }
-
-            if (UsesVolumeAsShield && IsAlive)
-            {
-                RefreshBodyTraits();
-            }
-        }
-
-        public void TakeTurn(GameSession session, Creature player, IRng rng)
-        {
-            var intent = CreatureBrain.Decide(this, player, session, rng);
-            CreatureMoves.Perform(intent, this, player, session, rng);
         }
 
         public void PlaceOn(Vector2Int cell)
@@ -242,8 +325,49 @@ namespace SlimesRevenge
             transform.position = new Vector3(cell.x + 0.5f, cell.y + 0.5f, -0.1f);
         }
 
+        /// <summary>
+        /// Mark this creature as a corpse on the floor: keeps the GameObject for visuals / revive,
+        /// seeds decay from <see cref="MaxHitPoints"/>, skips aging on the death turn.
+        /// </summary>
+        public void BecomeCorpse()
+        {
+            if (IsCorpse)
+            {
+                return;
+            }
+
+            IsCorpse = true;
+            HitPoints = 0;
+            DecayTurnsLeft = Mathf.Max(1, maxHitPoints);
+            skipCorpseAging = true;
+            ClearAggro();
+            ClearPursuit();
+            ClearFlee();
+        }
+
+        public void TickCorpseDecay()
+        {
+            if (!IsCorpse)
+            {
+                return;
+            }
+
+            if (skipCorpseAging)
+            {
+                skipCorpseAging = false;
+                return;
+            }
+
+            if (DecayTurnsLeft > 0)
+            {
+                DecayTurnsLeft--;
+            }
+        }
+
+        /// <summary>Remove from play entirely (game over / decayed / digested).</summary>
         public void Die()
         {
+            IsCorpse = false;
             gameObject.SetActive(false);
         }
     }

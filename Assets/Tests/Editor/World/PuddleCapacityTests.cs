@@ -98,7 +98,7 @@ namespace SlimesRevenge.Tests
                 slime.Volume.UniqueKinds(),
                 canMess: false,
                 canCollect: slime.Volume.UnitCount < Volume.Capacity,
-                floorCorpses: System.Array.Empty<Corpse>(),
+                floorCorpses: System.Array.Empty<Creature>(),
                 mess: _ => { },
                 collect: () => { },
                 devour: _ => { });
@@ -121,7 +121,7 @@ namespace SlimesRevenge.Tests
                 canMess: turns.Session.World.Floor.GetPuddle(waterCell) == null && slime.Volume.UnitCount > 0,
                 canCollect: turns.Session.World.Floor.GetPuddle(waterCell) != null
                     && slime.Volume.UnitCount < Volume.Capacity,
-                floorCorpses: System.Array.Empty<Corpse>(),
+                floorCorpses: System.Array.Empty<Creature>(),
                 mess: _ => { },
                 collect: () => { },
                 devour: _ => { });
@@ -152,8 +152,8 @@ namespace SlimesRevenge.Tests
                 slime.Volume.Add(Volume.CloneSubstance(kind));
             }
 
-            slime.SetMaxHitPoints(1);
-            slime.RefreshBodyTraits();
+            slime.SetMaxHitPoints(0);
+            slime.RefreshVolumeStatuses();
             return slime;
         }
 
