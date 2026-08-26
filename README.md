@@ -23,8 +23,11 @@ This machine currently has the editor without mobile modules, and batchmode need
 
 Add repository secrets (Personal license):
 
-1. Open Unity Hub, activate the license once, then copy the license file contents into `UNITY_LICENSE`.
-2. Set `UNITY_EMAIL` and `UNITY_PASSWORD` for the Unity account.
+1. `UNITY_LICENSE` — contents of local `Unity_lic.ulf` (already set from this machine).
+2. `UNITY_EMAIL` — Unity account email (already set).
+3. `UNITY_PASSWORD` — Unity account password (**still required**; set via `gh secret set UNITY_PASSWORD`).
+
+One-shot renewal helper: [`.github/workflows/activation.yml`](.github/workflows/activation.yml) (workflow_dispatch → `.alf` artifact → https://license.unity3d.com → new `.ulf`).
 
 See [GameCI activation](https://game.ci/docs/github/activation).
 
