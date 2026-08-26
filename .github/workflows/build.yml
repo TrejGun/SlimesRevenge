@@ -9,6 +9,10 @@ on:
 env:
   UNITY_VERSION: 6000.5.9f1
 
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   test:
     name: Test
