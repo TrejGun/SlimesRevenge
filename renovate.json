@@ -1,12 +1,12 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base",
+    "config:recommended",
     ":disableRateLimiting",
     ":semanticCommits",
     "group:allNonMajor"
   ],
-  "baseBranches": [
+  "baseBranchPatterns": [
     "dev"
   ],
   "timezone": "Asia/Tbilisi",
@@ -16,7 +16,7 @@
   "updateNotScheduled": false,
   "dependencyDashboard": true,
   "major": {
-    "masterIssueApproval": true
+    "dependencyDashboardApproval": true
   },
   "packageRules": [
     {
@@ -31,7 +31,7 @@
       "matchUpdateTypes": [
         "major"
       ],
-      "masterIssueApproval": true
+      "dependencyDashboardApproval": true
     }
   ]
 }
