@@ -1,10 +1,37 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "local>TrejGun/renovate-config"
+    "config:base",
+    ":disableRateLimiting",
+    ":semanticCommits",
+    "group:allNonMajor"
   ],
   "baseBranches": [
     "dev"
   ],
-  "updateNotScheduled": true
+  "timezone": "Asia/Tbilisi",
+  "schedule": [
+    "before 5am on Saturday"
+  ],
+  "updateNotScheduled": false,
+  "dependencyDashboard": true,
+  "major": {
+    "masterIssueApproval": true
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
+      "automerge": false
+    },
+    {
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "masterIssueApproval": true
+    }
+  ]
 }
