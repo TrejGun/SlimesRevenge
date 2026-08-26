@@ -28,6 +28,8 @@ Two workflows ([GameCI](https://game.ci/docs/github/getting-started)):
 | [`test.yml`](.github/workflows/test.yml) | Push to `dev`, PR → `dev`/`main`, manual | EditMode tests only |
 | [`build.yml`](.github/workflows/build.yml) | Push to `main`, manual on `main` | Tests, then Android + iOS |
 
+EditMode steps live once in [`unity-editmode.yml`](.github/workflows/unity-editmode.yml) (reusable `workflow_call`); both workflows call it with `secrets: inherit`.
+
 A new commit on the same branch **cancels** the previous in-progress run for that workflow.
 
 Feature branches: open a PR into `dev` (or `main`) — only `Test` runs.
