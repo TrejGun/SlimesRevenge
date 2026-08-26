@@ -22,7 +22,6 @@ namespace SlimesRevenge
         private Action<int> onDevour;
         private IReadOnlyList<Substance> kinds;
         private IReadOnlyList<Corpse> corpses;
-        private bool selfMenu;
 
         public bool BlocksInput => canvas != null && canvas.enabled || suppressWorldInput;
 
@@ -60,7 +59,6 @@ namespace SlimesRevenge
         public void OpenActions(IReadOnlyList<Substance> substances, Action<Substance> onSubstance)
         {
             EnsureUi();
-            selfMenu = false;
             kinds = substances;
             onPick = onSubstance;
             onMess = null;
@@ -80,7 +78,6 @@ namespace SlimesRevenge
             Action<int> devour)
         {
             EnsureUi();
-            selfMenu = true;
             kinds = substances;
             onPick = mess;
             onMess = canMess ? () => ShowSubstances() : (Action)null;
@@ -108,7 +105,6 @@ namespace SlimesRevenge
             onDevour = null;
             kinds = null;
             corpses = null;
-            selfMenu = false;
         }
 
         private void ShowActions()
@@ -334,7 +330,7 @@ namespace SlimesRevenge
 
         private static void EnsureEventSystem()
         {
-            if (FindFirstObjectByType<EventSystem>() != null)
+            if (FindAnyObjectByType<EventSystem>() != null)
             {
                 return;
             }

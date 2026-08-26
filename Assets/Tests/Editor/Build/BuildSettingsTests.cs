@@ -31,5 +31,14 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual("com.trejgun.slimesrevenge", PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.Android));
             Assert.AreEqual("com.trejgun.slimesrevenge", PlayerSettings.GetApplicationIdentifier(NamedBuildTarget.iOS));
         }
+
+        [Test]
+        public void AndroidMinSdk_IsAtLeastApi26()
+        {
+            Assert.GreaterOrEqual(
+                (int)PlayerSettings.Android.minSdkVersion,
+                (int)AndroidSdkVersions.AndroidApiLevel26,
+                "Unity 6 requires Android API 26+; API 23 is obsolete and will become an error.");
+        }
     }
 }

@@ -18,13 +18,13 @@ jobs:
     name: Test
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: jlumbroso/free-disk-space@v1.3.1
         with:
           tool-cache: false
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: Library
           key: Library-test-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
@@ -41,7 +41,7 @@ jobs:
           testMode: editmode
           githubToken: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: Test-results
@@ -56,13 +56,13 @@ jobs:
       matrix:
         targetPlatform: [Android, iOS]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - uses: jlumbroso/free-disk-space@v1.3.1
         with:
           tool-cache: false
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         with:
           path: Library
           key: Library-${{ matrix.targetPlatform }}-${{ hashFiles('Assets/**', 'Packages/**', 'ProjectSettings/**') }}
@@ -80,7 +80,7 @@ jobs:
           allowDirtyBuild: true
           androidExportType: androidPackage
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: slimesrevenge-${{ matrix.targetPlatform }}
           path: build/${{ matrix.targetPlatform }}

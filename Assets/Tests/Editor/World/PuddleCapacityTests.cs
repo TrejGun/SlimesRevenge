@@ -132,7 +132,7 @@ namespace SlimesRevenge.Tests
         private static bool MenuHasLabel(string label)
         {
             // CombatMenu builds its canvas on a separate root object.
-            foreach (var text in Object.FindObjectsByType<Text>(FindObjectsSortMode.None))
+            foreach (var text in Object.FindObjectsByType<Text>())
             {
                 if (text != null && text.text == label)
                 {
