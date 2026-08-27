@@ -7,9 +7,10 @@ namespace SlimesRevenge
     /// </summary>
     public abstract class TickingHarm : OverTime
     {
-        protected TickingHarm(int duration = DefaultDuration) : base(duration)
-        {
-        }
+        protected TickingHarm(int duration = DefaultDuration)
+            : base(duration) { }
+
+        public override bool LogsPulse => true;
 
         /// <summary>Base HP removed each pulse (before status multipliers such as flammable).</summary>
         public abstract int PulsePower { get; }
@@ -18,7 +19,13 @@ namespace SlimesRevenge
 
         protected override void OnPulse(Creature creature)
         {
-            creature?.Damage(PulsePowerFor(creature), blockedByArmor: false);
+            if (creature == null)
+            {
+                return;
+            }
+
+            creature.Damage(PulsePowerFor(creature), out _, out var applied, blockedByArmor: false);
+            ActionLog.DetailDamage(creature, armorStripped: 0, applied);
         }
     }
 }

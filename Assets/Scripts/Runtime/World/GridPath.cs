@@ -8,6 +8,7 @@ namespace SlimesRevenge
     /// <summary>
     /// Grid pathfinding via <b>A* Pathfinding Project Free</b> (Aron Granberg).
     /// Builds a temporary <see cref="GridGraph"/>, marks walls/blockers unwalkable, runs <see cref="ABPath"/>.
+    /// Walk steps come from grid-node indices (not <see cref="ABPath.vectorPath"/>), so Speed budget is not wasted on zigzag.
     /// </summary>
     public static class GridPath
     {
@@ -18,7 +19,9 @@ namespace SlimesRevenge
             Func<Vector2Int, bool> blocked,
             int maxStep,
             out Vector2Int destination,
-            Creature walker = null)
+            Creature walker = null,
+            Vector2Int? fleeFrom = null
+        )
         {
             destination = from;
             if (maxStep < 1)
@@ -26,15 +29,36 @@ namespace SlimesRevenge
                 return false;
             }
 
-            var path = Find(world, from, goals, blocked, walker);
+            var path = Find(world, from, goals, blocked, walker, fleeFrom);
             if (path == null || path.Count == 0)
             {
                 return false;
             }
 
-            var steps = Mathf.Max(1, maxStep);
-            destination = path[Mathf.Min(steps, path.Count) - 1];
-            return true;
+            // Walk at most Speed steps along the A* path (path index), never jump to a
+            // later cell that is merely within Chebyshev Speed — that teleports through blockers.
+            var steps = Mathf.Min(Mathf.Max(1, maxStep), path.Count);
+            destination = path[steps - 1];
+            if (destination == from || GridStep.Chebyshev(from, destination) < 1)
+            {
+                destination = from;
+                return false;
+            }
+
+            // If the prefix zigzags and lands farther than Speed in Chebyshev, back up.
+            while (steps > 0 && GridStep.Chebyshev(from, path[steps - 1]) > maxStep)
+            {
+                steps--;
+            }
+
+            if (steps < 1)
+            {
+                destination = from;
+                return false;
+            }
+
+            destination = path[steps - 1];
+            return GridStep.Chebyshev(from, destination) >= 1;
         }
 
         public static List<Vector2Int> Find(
@@ -42,7 +66,9 @@ namespace SlimesRevenge
             Vector2Int start,
             IEnumerable<Vector2Int> goals,
             Func<Vector2Int, bool> blocked,
-            Creature walker = null)
+            Creature walker = null,
+            Vector2Int? fleeFrom = null
+        )
         {
             if (world == null || blocked == null || goals == null)
             {
@@ -58,43 +84,37 @@ namespace SlimesRevenge
                 }
             }
 
-            if (goalSet.Count == 0)
+            if (goalSet.Count == 0 || goalSet.Contains(start))
             {
                 return null;
             }
 
-            if (goalSet.Contains(start))
-            {
-                return new List<Vector2Int>();
-            }
-
             var host = new GameObject("AstarPathfindingProject.Temp")
             {
-                hideFlags = HideFlags.HideAndDontSave
+                hideFlags = HideFlags.HideAndDontSave,
             };
             var astar = host.AddComponent<AstarPath>();
             EnsureAstarReady(astar);
             try
             {
-                ConfigureGraph(astar, world, start, blocked, walker);
-                return ShortestAstarPath(start, goalSet);
+                var gg = ConfigureGraph(astar, world, start, blocked, walker);
+                return ShortestAstarPath(gg, start, goalSet, fleeFrom);
+            }
+            catch (Exception)
+            {
+                return null;
             }
             finally
             {
-                if (Application.isPlaying)
+                if (AstarPath.active == astar)
                 {
-                    UnityEngine.Object.Destroy(host);
+                    AstarPath.active = null;
                 }
-                else
-                {
-                    UnityEngine.Object.DestroyImmediate(host);
-                }
+
+                UnityEngine.Object.DestroyImmediate(host);
             }
         }
 
-        /// <summary>
-        /// <see cref="AstarPath.Awake"/> skips init when not playing; EditMode tests need the same setup.
-        /// </summary>
         private static void EnsureAstarReady(AstarPath astar)
         {
             if (astar.data != null)
@@ -108,14 +128,17 @@ namespace SlimesRevenge
             astar.data.UpdateShortcuts();
         }
 
-        private static void ConfigureGraph(
+        private static GridGraph ConfigureGraph(
             AstarPath astar,
             World world,
             Vector2Int start,
             Func<Vector2Int, bool> blocked,
-            Creature walker)
+            Creature walker
+        )
         {
             var gg = astar.data.AddGraph(typeof(GridGraph)) as GridGraph;
+            // Node centers at integer (x,0,z) so GetNearest(Point(cell)) never sits
+            // halfway between two nodes (which snapped chase starts one cell off).
             gg.center = new Vector3(world.Width * 0.5f - 0.5f, 0f, world.Height * 0.5f - 0.5f);
             gg.SetDimensions(world.Width, world.Height, 1f);
             gg.neighbours = NumNeighbours.Eight;
@@ -151,11 +174,9 @@ namespace SlimesRevenge
             }
 
             astar.FloodFill();
+            return gg;
         }
 
-        /// <summary>
-        /// Scales <see cref="Substance.FloorPriorityFor"/> into A* node penalty so safer puddles win ties.
-        /// </summary>
         private static uint FloorPenalty(World world, Vector2Int cell, Creature walker)
         {
             var puddle = world.Floor.GetPuddle(cell);
@@ -168,87 +189,143 @@ namespace SlimesRevenge
             return (uint)(priority * 1000);
         }
 
-        private static List<Vector2Int> ShortestAstarPath(Vector2Int start, HashSet<Vector2Int> goals)
+        private static List<Vector2Int> ShortestAstarPath(
+            GridGraph gg,
+            Vector2Int start,
+            HashSet<Vector2Int> goals,
+            Vector2Int? fleeFrom
+        )
         {
             List<Vector2Int> best = null;
+            var bestEarly = -1;
+            var bestFleeGain = int.MinValue;
+            var startNode = gg.GetNode(start.x, start.y);
+            if (startNode == null || !startNode.Walkable)
+            {
+                return null;
+            }
+
+            var startFleeDist = fleeFrom != null ? GridStep.Chebyshev(start, fleeFrom.Value) : 0;
+
             foreach (var goal in goals)
             {
-                var ab = ABPath.Construct(Point(start), Point(goal), null);
+                var goalNode = gg.GetNode(goal.x, goal.y);
+                if (goalNode == null || !goalNode.Walkable)
+                {
+                    continue;
+                }
+
+                // Construct from node positions (integer centers), never half-cell probes.
+                var ab = ABPath.Construct(
+                    (Vector3)startNode.position,
+                    (Vector3)goalNode.position,
+                    null
+                );
                 AstarPath.StartPath(ab);
                 ab.BlockUntilCalculated();
-                if (ab.error || ab.vectorPath == null || ab.vectorPath.Count == 0)
+                if (ab.error || ab.path == null || ab.path.Count == 0)
                 {
                     continue;
                 }
 
-                var cells = ToCells(start, ab.vectorPath);
-                if (cells == null || cells.Count == 0)
+                var cells = ToCells(start, ab.path);
+                if (cells == null || cells.Count == 0 || !IsContiguousFrom(start, cells))
                 {
                     continue;
                 }
 
-                if (best == null
+                // Among equal-length routes, prefer early progress: chase closes on start→path,
+                // flee gains distance from the threat on the first step(s).
+                var earlyIndex = Mathf.Min(1, cells.Count - 1);
+                var early = GridStep.Chebyshev(start, cells[earlyIndex]);
+                var fleeGain = 0;
+                if (fleeFrom != null)
+                {
+                    fleeGain = GridStep.Chebyshev(cells[0], fleeFrom.Value) - startFleeDist;
+                }
+
+                var better =
+                    best == null
                     || cells.Count < best.Count
-                    || (cells.Count == best.Count && Compare(cells[cells.Count - 1], best[best.Count - 1]) < 0))
+                    || (cells.Count == best.Count && fleeFrom != null && fleeGain > bestFleeGain)
+                    || (
+                        cells.Count == best.Count
+                        && fleeFrom != null
+                        && fleeGain == bestFleeGain
+                        && early > bestEarly
+                    )
+                    || (cells.Count == best.Count && fleeFrom == null && early > bestEarly)
+                    || (
+                        cells.Count == best.Count
+                        && fleeGain == bestFleeGain
+                        && early == bestEarly
+                        && Compare(cells[cells.Count - 1], best[best.Count - 1]) < 0
+                    );
+                if (better)
                 {
                     best = cells;
+                    bestEarly = early;
+                    bestFleeGain = fleeGain;
                 }
             }
 
             return best;
         }
 
-        private static List<Vector2Int> ToCells(Vector2Int start, List<Vector3> vectorPath)
+        private static List<Vector2Int> ToCells(Vector2Int start, List<GraphNode> path)
         {
             var cells = new List<Vector2Int>();
-            var previous = start;
-            foreach (var point in vectorPath)
+            var pastStart = false;
+            foreach (var node in path)
             {
-                var cell = Cell(point);
-                AppendLine(cells, previous, cell);
-                previous = cell;
-            }
+                if (!(node is GridNodeBase grid))
+                {
+                    continue;
+                }
 
-            if (cells.Count > 0 && cells[0] == start)
-            {
-                cells.RemoveAt(0);
+                var cell = new Vector2Int(grid.XCoordinateInGrid, grid.ZCoordinateInGrid);
+                if (!pastStart)
+                {
+                    if (cell == start)
+                    {
+                        pastStart = true;
+                        continue;
+                    }
+
+                    // Path must begin at the requested start cell.
+                    return null;
+                }
+
+                if (cell == start)
+                {
+                    // Ignore a rare revisit of start; do not drop later cells that
+                    // merely match start's coordinates after leaving.
+                    continue;
+                }
+
+                if (cells.Count == 0 || cells[cells.Count - 1] != cell)
+                {
+                    cells.Add(cell);
+                }
             }
 
             return cells.Count == 0 ? null : cells;
         }
 
-        private static Vector3 Point(Vector2Int cell)
+        private static bool IsContiguousFrom(Vector2Int start, List<Vector2Int> cells)
         {
-            return new Vector3(cell.x + 0.5f, 0f, cell.y + 0.5f);
-        }
-
-        private static Vector2Int Cell(Vector3 point)
-        {
-            return new Vector2Int(Mathf.FloorToInt(point.x), Mathf.FloorToInt(point.z));
-        }
-
-        private static void AppendLine(List<Vector2Int> cells, Vector2Int from, Vector2Int to)
-        {
-            var current = from;
-            while (current != to)
+            var prev = start;
+            for (var i = 0; i < cells.Count; i++)
             {
-                var dx = to.x - current.x;
-                var dy = to.y - current.y;
-                if (dx != 0)
+                if (!GridStep.IsAdjacent(prev, cells[i]))
                 {
-                    current.x += dx > 0 ? 1 : -1;
+                    return false;
                 }
 
-                if (dy != 0)
-                {
-                    current.y += dy > 0 ? 1 : -1;
-                }
-
-                if (cells.Count == 0 || cells[cells.Count - 1] != current)
-                {
-                    cells.Add(current);
-                }
+                prev = cells[i];
             }
+
+            return true;
         }
 
         private static int Compare(Vector2Int a, Vector2Int b)

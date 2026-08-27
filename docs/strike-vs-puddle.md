@@ -17,7 +17,7 @@
 | Oil | `Power` 1 | `Instability` + timed `Flammable` |
 | Poison | `Power` 1 | `Poisoned` (не на `Poisonous`) |
 | Acid | `Power` 1 + `Corrosion` 1 | `Corroding` (пульсы: броня → HP); удар: сначала strip, потом Power vs DR |
-| Blood | `Power` 1 | `Vampirism.Drink` если есть вампиризм |
+| Blood | `Power` 1 | `NotifyReceivedSubstance` → `Vampirism` если есть |
 | Lava | `Power` 1, ×2 при `Flammable` | `Burning` (пульсы в HP, броню не трогает) |
 
 Броня: см. [armor.md](armor.md).

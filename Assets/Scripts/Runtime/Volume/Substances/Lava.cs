@@ -16,7 +16,15 @@ namespace SlimesRevenge
 
         public override Substance Clone() => new Lava();
 
-        public override int StrikePower(Creature target) => Flammable.Amplify(target, Power);
+        public override void CollectApplyPreview(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            sink?.Add(new Burning());
+        }
+
+        public override int StrikePower(Creature target) =>
+            target != null ? target.ModifyIncomingHarm(Power) : Power;
 
         protected override void OnApply(Creature target)
         {

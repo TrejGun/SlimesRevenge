@@ -66,13 +66,13 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(turns.TryMoveTo(dogCell));
             Assert.AreEqual(1, turns.Session.World.Floor.GetCorpses(dogCell).Count);
             Assert.IsTrue(turns.TryDevourCorpse(0));
-            Assert.AreEqual(8, slime.Volume.UnitCount);
-            Assert.IsTrue(slime.Digestion.IsBusy);
+            Assert.AreEqual(7, slime.Volume.UnitCount);
+            Assert.IsTrue(slime.IsDigesting);
             Assert.IsTrue(turns.TryWait());
-            Assert.AreEqual(9, slime.Volume.UnitCount);
+            Assert.AreEqual(7, slime.Volume.UnitCount);
             Assert.IsTrue(turns.TryWait());
             Assert.AreEqual(Volume.Capacity, slime.Volume.UnitCount);
-            Assert.IsFalse(slime.Digestion.IsBusy);
+            Assert.IsFalse(slime.IsDigesting);
             Assert.AreEqual(7, slime.Volume.CountOf<Water>());
             Assert.AreEqual(3, slime.Volume.CountOf<Blood>());
             Assert.IsNotNull(turns.Session.World.Floor.GetPuddle(center));
@@ -93,16 +93,18 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(Volume.Capacity, slime.Volume.UnitCount);
             Assert.IsInstanceOf<Water>(turns.Session.World.Floor.GetPuddle(waterCell).Substance);
 
-            var menu = SpawnObject("Menu").AddComponent<CombatMenu>();
-            menu.OpenSelf(
-                slime.Volume.UniqueKinds(),
-                canMess: false,
-                canCollect: slime.Volume.UnitCount < Volume.Capacity,
-                floorCorpses: System.Array.Empty<Creature>(),
-                mess: _ => { },
-                collect: () => { },
-                devour: _ => { });
-            Assert.IsFalse(MenuHasLabel(I18n.Get(TextKey.CombatCollect)));
+            var menu = SpawnObject("Menu").AddComponent<CellMenu>();
+            menu.Open(
+                new CellMenuContext(
+                    waterCell,
+                    slime,
+                    null,
+                    turns.Session.World.Floor.GetPuddle(waterCell),
+                    System.Array.Empty<Creature>(),
+                    turns
+                )
+            );
+            Assert.IsFalse(MenuHasLabel(I18n.Get(TextKey.MenuCollect)));
 
             Assert.IsTrue(turns.TryMoveTo(dumpCell));
             Assert.IsTrue(turns.TryMakeMess(new Oil()));
@@ -116,22 +118,23 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(1, slime.Volume.CountOf<Water>());
             Assert.IsNull(turns.Session.World.Floor.GetPuddle(waterCell));
 
-            menu.OpenSelf(
-                slime.Volume.UniqueKinds(),
-                canMess: turns.Session.World.Floor.GetPuddle(waterCell) == null && slime.Volume.UnitCount > 0,
-                canCollect: turns.Session.World.Floor.GetPuddle(waterCell) != null
-                    && slime.Volume.UnitCount < Volume.Capacity,
-                floorCorpses: System.Array.Empty<Creature>(),
-                mess: _ => { },
-                collect: () => { },
-                devour: _ => { });
-            Assert.IsFalse(MenuHasLabel(I18n.Get(TextKey.CombatCollect)));
-            Assert.IsTrue(MenuHasLabel(I18n.Get(TextKey.CombatMess)));
+            menu.Open(
+                new CellMenuContext(
+                    waterCell,
+                    slime,
+                    null,
+                    turns.Session.World.Floor.GetPuddle(waterCell),
+                    System.Array.Empty<Creature>(),
+                    turns
+                )
+            );
+            Assert.IsFalse(MenuHasLabel(I18n.Get(TextKey.MenuCollect)));
+            Assert.IsTrue(MenuHasLabel(I18n.Get(TextKey.MenuMess)));
         }
 
         private static bool MenuHasLabel(string label)
         {
-            // CombatMenu builds its canvas on a separate root object.
+            // CellMenu builds its canvas on a separate root object.
             foreach (var text in Object.FindObjectsByType<Text>())
             {
                 if (text != null && text.text == label)
@@ -165,7 +168,8 @@ namespace SlimesRevenge.Tests
             return turns;
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);

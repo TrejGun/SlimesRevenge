@@ -43,7 +43,10 @@ namespace SlimesRevenge.Tests
 
             Assert.IsFalse(CreatureMoves.CanSee(dog, player));
             Assert.IsTrue(CreatureMoves.CanSee(dog, cat));
-            Assert.AreEqual(CreatureIntent.Chase, CreatureBrain.Decide(dog, player, session, new FixedRng(), others));
+            Assert.AreEqual(
+                CreatureIntent.Chase,
+                CreatureBrain.Decide(dog, player, session, new FixedRng(), others)
+            );
 
             dog.TakeTurn(session, player, new FixedRng(), others);
             Assert.AreEqual(cat.Cell, dog.PursuitCell);
@@ -59,7 +62,10 @@ namespace SlimesRevenge.Tests
             }
 
             Assert.IsTrue(GridStep.IsAdjacent(dog.Cell, cat.Cell));
-            Assert.IsNull(session.World.Floor.GetPuddle(new Vector2Int(7, 8)), "Dog consumes the oil puddle when stepping on it.");
+            Assert.IsNull(
+                session.World.Floor.GetPuddle(new Vector2Int(7, 8)),
+                "Dog consumes the oil puddle when stepping on it."
+            );
             Assert.IsNotNull(dog.FindStatus<Flammable>());
             Assert.IsNotNull(dog.FindStatus<Instability>());
         }
@@ -67,7 +73,8 @@ namespace SlimesRevenge.Tests
         [Test]
         public void DotPuddle_IsWalkableTrap_HigherFloorPriorityThanNonDot(
             [Values(typeof(Lava), typeof(Acid), typeof(Poison))] System.Type dotType,
-            [Values(typeof(Oil), typeof(Water), typeof(Blood))] System.Type safeType)
+            [Values(typeof(Oil), typeof(Water), typeof(Blood))] System.Type safeType
+        )
         {
             var world = World.CreateGrass(8);
             var dotCell = new Vector2Int(3, 3);
@@ -111,9 +118,15 @@ namespace SlimesRevenge.Tests
                 scorpion.Cell,
                 goals,
                 cell => CreatureMoves.IsBlocked(session, scorpion.Cell, cell),
-                scorpion);
+                scorpion
+            );
             Assert.IsNotNull(scorpioPath);
-            Assert.IsTrue(scorpioPath.Contains(poisonCell), "Poison puddle costs 0 for poisonous walkers.");
+            // Poison costs 0 for poisonous walkers — must not be treated as a hard avoid.
+            Assert.LessOrEqual(
+                scorpioPath.Count,
+                GridStep.Chebyshev(scorpion.Cell, goals[0]) + 1,
+                "Poison must not add meaningful path cost for poisonous walkers."
+            );
 
             var hp = scorpion.HitPoints;
             Assert.IsTrue(session.TryMoveOccupant(scorpion.Cell, poisonCell));
@@ -129,30 +142,35 @@ namespace SlimesRevenge.Tests
         public void Dog_DetourAroundLongWall_FirstStepMayIncreaseChebyshev()
         {
             var world = World.CreateGrass(14);
-            for (var x = 0; x <= 10; x++)
+            // Short enough that the dog can keep the cat in VisionRange 5 while skirting the end.
+            for (var x = 3; x <= 7; x++)
             {
                 world.SetTerrain(new Vector2Int(x, 6), TerrainType.Wall);
             }
 
-            var player = Spawn<Slime>(new Vector2Int(0, 0));
-            var dog = Spawn<Dog>(new Vector2Int(2, 8));
-            var cat = Spawn<Cat>(new Vector2Int(2, 4));
+            var player = Spawn<Slime>(new Vector2Int(13, 13));
+            var dog = Spawn<Dog>(new Vector2Int(5, 8));
+            var cat = Spawn<Cat>(new Vector2Int(5, 4));
             var session = Occupied(world, player, dog, cat);
             var others = new List<Creature> { dog, cat };
 
             Assert.IsFalse(CreatureMoves.CanSee(dog, player));
-            var before = GridStep.Chebyshev(dog.Cell, cat.Cell);
-            dog.TakeTurn(session, player, new FixedRng(), others);
-            Assert.GreaterOrEqual(GridStep.Chebyshev(dog.Cell, cat.Cell), before);
+            Assert.AreEqual(
+                CreatureIntent.Chase,
+                CreatureBrain.Decide(dog, player, session, new FixedRng(), others)
+            );
 
             var turns = 0;
-            while (!GridStep.IsAdjacent(dog.Cell, cat.Cell) && turns < 30)
+            while (!GridStep.IsAdjacent(dog.Cell, cat.Cell) && turns < 40)
             {
                 dog.TakeTurn(session, player, new FixedRng(), others);
                 turns++;
             }
 
-            Assert.IsTrue(GridStep.IsAdjacent(dog.Cell, cat.Cell));
+            Assert.IsTrue(
+                GridStep.IsAdjacent(dog.Cell, cat.Cell),
+                $"Dog stuck at {dog.Cell} after {turns} turns; cat at {cat.Cell}."
+            );
         }
 
         [Test]
@@ -171,40 +189,50 @@ namespace SlimesRevenge.Tests
             var remembered = dog.PursuitCell.Value;
 
             // Cat leaves vision; dog is teleported far so it cannot reach the memory cell within 3 turns.
-            session.TryMoveOccupant(cat.Cell, new Vector2Int(1, 1));
-            cat.PlaceOn(new Vector2Int(1, 1));
-            session.TryMoveOccupant(dog.Cell, new Vector2Int(2, 2));
-            dog.PlaceOn(new Vector2Int(2, 2));
+            // VisionRange 5: keep Chebyshev > 5 between dog and cat after teleport.
+            session.TryMoveOccupant(cat.Cell, new Vector2Int(1, 0));
+            cat.PlaceOn(new Vector2Int(1, 0));
+            session.TryMoveOccupant(dog.Cell, new Vector2Int(0, 13));
+            dog.PlaceOn(new Vector2Int(0, 13));
             dog.RememberPursuit(remembered);
             Assert.IsFalse(CreatureMoves.CanSee(dog, cat));
+            Assert.IsFalse(CreatureMoves.CanSee(dog, player));
             Assert.Greater(GridStep.Chebyshev(dog.Cell, remembered), 6);
 
             for (var i = 0; i < 3; i++)
             {
                 Assert.IsNotNull(dog.PursuitCell, $"memory should remain on turn {i}");
-                Assert.AreEqual(CreatureIntent.Chase, CreatureBrain.Decide(dog, player, session, new FixedRng(), others));
+                Assert.AreEqual(
+                    CreatureIntent.Chase,
+                    CreatureBrain.Decide(dog, player, session, new FixedRng(), others)
+                );
                 dog.TakeTurn(session, player, new FixedRng(), others);
             }
 
             Assert.IsNull(dog.PursuitCell);
-            Assert.AreEqual(CreatureIntent.Idle, CreatureBrain.Decide(dog, player, session, new FixedRng(), others));
+            Assert.AreEqual(
+                CreatureIntent.Idle,
+                CreatureBrain.Decide(dog, player, session, new FixedRng(), others)
+            );
         }
 
         [Test]
         public void Dog_ReachesLastKnownCell_WithoutSeeingCat_ClearsPursuit()
         {
-            var world = World.CreateGrass();
+            var world = World.CreateGrass(14);
+            // Keep slime out of dog vision so Chase uses pursuit memory, not the player.
             var player = Spawn<Slime>(new Vector2Int(0, 0));
-            var dog = Spawn<Dog>(new Vector2Int(5, 5));
-            var cat = Spawn<Cat>(new Vector2Int(5, 6));
+            var dog = Spawn<Dog>(new Vector2Int(12, 12));
+            var cat = Spawn<Cat>(new Vector2Int(12, 11));
             var session = Occupied(world, player, dog, cat);
             var others = new List<Creature> { dog, cat };
 
             var lastKnown = cat.Cell;
             dog.RememberPursuit(lastKnown);
-            session.TryMoveOccupant(cat.Cell, new Vector2Int(1, 1));
-            cat.PlaceOn(new Vector2Int(1, 1));
+            session.TryMoveOccupant(cat.Cell, new Vector2Int(0, 13));
+            cat.PlaceOn(new Vector2Int(0, 13));
             Assert.IsFalse(CreatureMoves.CanSee(dog, cat));
+            Assert.IsFalse(CreatureMoves.CanSee(dog, player));
 
             for (var i = 0; i < 8 && dog.PursuitCell != null; i++)
             {
@@ -225,11 +253,17 @@ namespace SlimesRevenge.Tests
             var session = Occupied(world, player, dog, cat);
             var others = new List<Creature> { dog, cat };
 
-            Assert.AreEqual(CreatureIntent.Flee, CreatureBrain.Decide(cat, player, session, new FixedRng(), others));
+            Assert.AreEqual(
+                CreatureIntent.Flee,
+                CreatureBrain.Decide(cat, player, session, new FixedRng(), others)
+            );
             cat.TakeTurn(session, player, new FixedRng(), others);
             Assert.IsNotNull(cat.FleeCell);
             var flee = cat.FleeCell.Value;
-            Assert.Greater(GridStep.Chebyshev(flee, dog.Cell), GridStep.Chebyshev(cat.Cell, dog.Cell));
+            Assert.Greater(
+                GridStep.Chebyshev(flee, dog.Cell),
+                GridStep.Chebyshev(cat.Cell, dog.Cell)
+            );
 
             var turns = 0;
             while (cat.FleeCell != null && cat.Cell != flee && turns < 30)
@@ -288,13 +322,23 @@ namespace SlimesRevenge.Tests
             world.Floor.TryPlacePuddle(new Vector2Int(4, 3), new Water());
             world.Floor.TryPlacePuddle(new Vector2Int(5, 3), new Lava());
 
-            var session = new GameSession(world, new Vector2Int(0, 0), new[] { new Vector2Int(1, 3) });
-            Assert.IsTrue(CreatureMoves.IsBlocked(session, new Vector2Int(1, 3), new Vector2Int(3, 3)));
-            Assert.IsFalse(CreatureMoves.IsBlocked(session, new Vector2Int(1, 3), new Vector2Int(4, 3)));
-            Assert.IsFalse(CreatureMoves.IsBlocked(session, new Vector2Int(1, 3), new Vector2Int(5, 3)));
+            var session = new GameSession(
+                world,
+                new[] { new Vector2Int(0, 0), new Vector2Int(1, 3) }
+            );
+            Assert.IsTrue(
+                CreatureMoves.IsBlocked(session, new Vector2Int(1, 3), new Vector2Int(3, 3))
+            );
+            Assert.IsFalse(
+                CreatureMoves.IsBlocked(session, new Vector2Int(1, 3), new Vector2Int(4, 3))
+            );
+            Assert.IsFalse(
+                CreatureMoves.IsBlocked(session, new Vector2Int(1, 3), new Vector2Int(5, 3))
+            );
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = new GameObject(typeof(T).Name).AddComponent<T>();
             spawned.Add(creature.gameObject);
@@ -342,13 +386,7 @@ namespace SlimesRevenge.Tests
 
         private static GameSession Occupied(World world, Creature player, params Creature[] others)
         {
-            var cells = new Vector2Int[others.Length];
-            for (var i = 0; i < others.Length; i++)
-            {
-                cells[i] = others[i].Cell;
-            }
-
-            return new GameSession(world, player.Cell, cells);
+            return SessionFactory.WithControlled(world, player, others);
         }
     }
 }

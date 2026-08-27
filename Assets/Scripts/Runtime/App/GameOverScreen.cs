@@ -33,18 +33,21 @@ namespace SlimesRevenge
             ClearPanel();
             canvas.enabled = true;
             AddLabel(I18n.Get(TextKey.GameOver));
-            AddButton(I18n.Get(TextKey.GameMenu), () =>
-            {
-                Hide();
-                if (onMenu != null)
+            AddButton(
+                I18n.Get(TextKey.GameMenu),
+                () =>
                 {
-                    onMenu();
+                    Hide();
+                    if (onMenu != null)
+                    {
+                        onMenu();
+                    }
+                    else
+                    {
+                        SceneManager.LoadScene(MenuScene);
+                    }
                 }
-                else
-                {
-                    SceneManager.LoadScene(MenuScene);
-                }
-            });
+            );
             Layout(2);
         }
 

@@ -169,7 +169,11 @@ namespace SlimesRevenge.Tests
             slime.Volume.Add(new Oil());
             slime.RefreshVolumeStatuses();
             Assert.IsNotNull(slime.FindStatus<Fireproof>());
-            Assert.AreEqual(-1, IndexOf<Fireproof>(slime), "Fireproof lives on the dominance slot, not the queue.");
+            Assert.AreEqual(
+                -1,
+                IndexOf<Fireproof>(slime),
+                "Fireproof lives on the dominance slot, not the queue."
+            );
 
             slime.AddStatus(new Poisoned());
             Assert.AreEqual(0, IndexOf<Poisoned>(slime));
@@ -302,7 +306,8 @@ namespace SlimesRevenge.Tests
             Assert.IsNotNull(slime.FindStatus<Regeneration>());
         }
 
-        private static int IndexOf<T>(Creature creature) where T : StatusEffect
+        private static int IndexOf<T>(Creature creature)
+            where T : StatusEffect
         {
             for (var i = 0; i < creature.Statuses.Count; i++)
             {

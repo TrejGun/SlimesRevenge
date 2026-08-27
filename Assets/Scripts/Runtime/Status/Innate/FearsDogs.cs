@@ -5,6 +5,8 @@ namespace SlimesRevenge
     {
         public override string Label => I18n.Get(TextKey.StatusFearsDogs);
 
+        public override string Description => I18n.Get(TextKey.StatusFearsDogsDesc);
+
         public override bool IsPredator(Creature other) => other is Dog;
     }
 }

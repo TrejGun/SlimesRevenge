@@ -1,8 +1,8 @@
 namespace SlimesRevenge
 {
     /// <summary>
-    /// Heal <see cref="HealAmount"/> when drinking blood: puddle/retort via <see cref="Blood.Apply"/>,
-    /// or melee when the volume tip struck is blood (<see cref="OnStrike"/>).
+    /// Heal <see cref="HealAmount"/> when drinking blood: puddle/retort via
+    /// <see cref="OnOwnerReceivedSubstance"/>, or melee when the volume tip struck is blood.
     /// </summary>
     public sealed class Vampirism : InnateTrait
     {
@@ -10,18 +10,39 @@ namespace SlimesRevenge
 
         public override string Label => I18n.Get(TextKey.StatusVampirism);
 
-        public void Drink(Creature self)
+        public override string Description => I18n.Get(TextKey.StatusVampirismDesc);
+
+        public override void OnOwnerReceivedSubstance(Creature owner, Substance substance)
         {
-            self?.Heal(HealAmount);
+            if (substance is Blood)
+            {
+                Drink(owner);
+            }
         }
 
-        /// <summary>Same heal when the tip unit knocked off by a strike was blood.</summary>
-        public void OnStrike(Creature self, Substance tipStruck)
+        public override void OnOwnerStruckVolumeTip(Creature owner, Substance tip)
         {
-            if (tipStruck is Blood)
+            if (tip is Blood)
             {
-                Drink(self);
+                Drink(owner);
             }
+        }
+
+        private void Drink(Creature self)
+        {
+            if (self == null)
+            {
+                return;
+            }
+
+            var healed = self.Heal(HealAmount);
+            if (healed <= 0 || !ActionLog.HasOpenGroup)
+            {
+                return;
+            }
+
+            LogMarker();
+            ActionLog.DetailHeal(healed);
         }
     }
 }

@@ -8,13 +8,30 @@ namespace SlimesRevenge
         name: "Player Adjacent",
         story: "Player is adjacent",
         category: "Conditions/Creatures",
-        id: "a111ad1a000000000000000000000001")]
+        id: "a111ad1a000000000000000000000001"
+    )]
     public partial class PlayerAdjacentCondition : Condition
     {
         public override bool IsTrue()
         {
-            var self = GameObject.GetComponent<Creature>();
-            return CreatureMoves.IsAdjacent(self, CreatureTurnContext.Player);
+            return CreatureMoves.IsAdjacent(ResolveSelf(), CreatureTurnContext.Player);
+        }
+
+        private Creature ResolveSelf()
+        {
+            if (CreatureTurnContext.Actor != null)
+            {
+                return CreatureTurnContext.Actor;
+            }
+
+            try
+            {
+                return GameObject != null ? GameObject.GetComponent<Creature>() : null;
+            }
+            catch (System.NullReferenceException)
+            {
+                return null;
+            }
         }
     }
 }

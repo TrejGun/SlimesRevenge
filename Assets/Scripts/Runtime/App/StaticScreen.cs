@@ -6,9 +6,14 @@ namespace SlimesRevenge
 {
     public sealed class StaticScreen : MonoBehaviour
     {
-        [SerializeField] private int targetFrameRate = 30;
-        [SerializeField] private string nextScene = "Game";
-        [SerializeField] private float holdSeconds = 1f;
+        [SerializeField]
+        private int targetFrameRate = 30;
+
+        [SerializeField]
+        private string nextScene = "Game";
+
+        [SerializeField]
+        private float holdSeconds = 1f;
 
         private void Awake()
         {

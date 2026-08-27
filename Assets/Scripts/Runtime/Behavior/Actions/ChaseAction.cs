@@ -8,7 +8,8 @@ namespace SlimesRevenge
         name: "Chase",
         story: "Choose chase",
         category: "Action/Creatures",
-        id: "a111c4a5000000000000000000000001")]
+        id: "a111c4a5000000000000000000000001"
+    )]
     public partial class ChaseAction : Action
     {
         protected override Node.Status OnStart()

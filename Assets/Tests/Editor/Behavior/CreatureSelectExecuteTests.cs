@@ -38,7 +38,7 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(5, player.Volume.UnitCount);
 
             Assert.IsTrue(session.TryStep(Vector2Int.left));
-            player.PlaceOn(session.PlayerCell);
+            player.PlaceOn(session.ControlledCell.Value);
 
             var flee = CreatureBrain.Decide(rat, player, session, rng);
             Assert.AreEqual(CreatureIntent.Flee, flee);
@@ -73,9 +73,15 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(CreatureIntent.Attack, CreatureBrain.Decide(cat, player, session, rng));
 
             Assert.IsTrue(session.TryStep(Vector2Int.left));
-            player.PlaceOn(session.PlayerCell);
+            player.PlaceOn(session.ControlledCell.Value);
             Assert.AreEqual(CreatureIntent.Flee, CreatureBrain.Decide(rat, player, session, rng));
             Assert.IsFalse(rat.InCombat);
+
+            // Passive cat keeps aggro when slime breaks contact; dog stays hostile.
+            Assert.IsTrue(cat.InCombat);
+            Assert.AreEqual(CreatureIntent.Chase, CreatureBrain.Decide(cat, player, session, rng));
+            Assert.IsTrue(cat.InCombat);
+            Assert.AreEqual(CreatureIntent.Chase, CreatureBrain.Decide(dog, player, session, rng));
         }
 
         [Test]
@@ -88,7 +94,8 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(CreatureIntent.None, CreatureTurnContext.ChosenIntent);
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);
@@ -141,13 +148,7 @@ namespace SlimesRevenge.Tests
 
         private static GameSession Occupied(World world, Creature player, params Creature[] others)
         {
-            var cells = new Vector2Int[others.Length];
-            for (var i = 0; i < others.Length; i++)
-            {
-                cells[i] = others[i].Cell;
-            }
-
-            return new GameSession(world, player.Cell, cells);
+            return SessionFactory.WithControlled(world, player, others);
         }
     }
 }

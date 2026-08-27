@@ -82,12 +82,7 @@ namespace SlimesRevenge.Tests
         public void Dog_StepsThroughThreeWaterPuddles_TheyVanish()
         {
             var world = World.CreateGrass(8);
-            var cells = new[]
-            {
-                new Vector2Int(1, 0),
-                new Vector2Int(2, 0),
-                new Vector2Int(3, 0),
-            };
+            var cells = new[] { new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0) };
             foreach (var cell in cells)
             {
                 Assert.IsTrue(world.Floor.TryPlacePuddle(cell, new Water()));
@@ -95,7 +90,7 @@ namespace SlimesRevenge.Tests
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
             var dog = Spawn<Dog>(new Vector2Int(0, 0));
-            var session = new GameSession(world, player.Cell, new[] { dog.Cell });
+            var session = SessionFactory.WithControlled(world, player, dog);
 
             foreach (var cell in cells)
             {
@@ -119,7 +114,7 @@ namespace SlimesRevenge.Tests
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
             var dog = Spawn<Dog>(new Vector2Int(0, 0));
-            var session = new GameSession(world, player.Cell, new[] { dog.Cell });
+            var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, oilCell));
             dog.PlaceOn(oilCell);
@@ -148,7 +143,7 @@ namespace SlimesRevenge.Tests
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
             var dog = Spawn<Dog>(new Vector2Int(0, 0));
-            var session = new GameSession(world, player.Cell, new[] { dog.Cell });
+            var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, lavaCell));
             dog.PlaceOn(lavaCell);
@@ -160,7 +155,10 @@ namespace SlimesRevenge.Tests
             dog.PlaceOn(waterCell);
             world.Floor.ApplyContact(dog);
             Assert.IsNull(dog.FindStatus<Burning>());
-            Assert.IsNull(dog.FindStatus<Wet>(), "Water on burning extinguishes without applying Wet.");
+            Assert.IsNull(
+                dog.FindStatus<Wet>(),
+                "Water on burning extinguishes without applying Wet."
+            );
             Assert.IsNull(world.Floor.GetPuddle(waterCell));
         }
 
@@ -175,7 +173,7 @@ namespace SlimesRevenge.Tests
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
             var dog = Spawn<Dog>(new Vector2Int(0, 0));
-            var session = new GameSession(world, player.Cell, new[] { dog.Cell });
+            var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, acidCell));
             dog.PlaceOn(acidCell);
@@ -202,7 +200,7 @@ namespace SlimesRevenge.Tests
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
             var dog = Spawn<Dog>(new Vector2Int(0, 0));
-            var session = new GameSession(world, player.Cell, new[] { dog.Cell });
+            var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, waterCell));
             dog.PlaceOn(waterCell);
@@ -250,12 +248,7 @@ namespace SlimesRevenge.Tests
         public void Slime_StepsThroughWaterPuddles_TheyRemain()
         {
             var world = World.CreateGrass(8);
-            var cells = new[]
-            {
-                new Vector2Int(1, 0),
-                new Vector2Int(2, 0),
-                new Vector2Int(3, 0),
-            };
+            var cells = new[] { new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0) };
             foreach (var cell in cells)
             {
                 Assert.IsTrue(world.Floor.TryPlacePuddle(cell, new Water()));
@@ -288,7 +281,7 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(2, bat.HitPoints);
             Assert.AreEqual(2, Vampirism.HealAmount);
 
-            var session = new GameSession(world, player.Cell, new[] { bat.Cell });
+            var session = SessionFactory.WithControlled(world, player, bat);
             Assert.IsTrue(session.TryMoveOccupant(bat.Cell, bloodCell));
             bat.PlaceOn(bloodCell);
             world.Floor.ApplyContact(bat);
@@ -319,7 +312,8 @@ namespace SlimesRevenge.Tests
             Assert.IsNull(world.Floor.GetPuddle(waterCell));
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = new GameObject(typeof(T).Name).AddComponent<T>();
             spawned.Add(creature.gameObject);

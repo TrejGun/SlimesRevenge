@@ -10,7 +10,11 @@ namespace SlimesRevenge
     {
         public override string Label => I18n.Get(TextKey.StatusRegeneration);
 
+        public override string Description => I18n.Get(TextKey.StatusRegenerationDesc);
+
         public override bool ClearedWhenDominanceChanges => true;
+
+        public override bool LogsPulse => true;
 
         protected override void OnPulse(Creature creature)
         {
@@ -25,7 +29,14 @@ namespace SlimesRevenge
                 return;
             }
 
-            slime.Volume.Add(new Blood());
+            var blood = new Blood();
+            slime.Volume.Add(blood);
+            if (ActionLog.HasOpenGroup)
+            {
+                ActionLog.Detail(
+                    ActionLogLine.FormatKey(TextKey.LogGrows, ActionLogPart.Substance(blood))
+                );
+            }
         }
     }
 }

@@ -89,7 +89,12 @@ namespace SlimesRevenge.Tests
         {
             Substance[] substances =
             {
-                new Water(), new Oil(), new Poison(), new Acid(), new Blood(), new Lava()
+                new Water(),
+                new Oil(),
+                new Poison(),
+                new Acid(),
+                new Blood(),
+                new Lava(),
             };
             foreach (var substance in substances)
             {
@@ -100,12 +105,16 @@ namespace SlimesRevenge.Tests
         [Test]
         public void AdjacentOccupiedCell_CanBeStruck()
         {
-            var session = new GameSession(World.CreateGrass(3), new Vector2Int(1, 1), new[] { new Vector2Int(2, 1) });
+            var session = SessionFactory.WithControlled(
+                World.CreateGrass(3),
+                new Vector2Int(1, 1),
+                new Vector2Int(2, 1)
+            );
 
             Assert.IsTrue(session.CanAttack(new Vector2Int(2, 1)));
             Assert.IsFalse(session.CanAttack(new Vector2Int(1, 2)));
             Assert.IsTrue(session.TryAttack(new Vector2Int(2, 1)));
-            Assert.AreEqual(new Vector2Int(1, 1), session.PlayerCell);
+            Assert.AreEqual(new Vector2Int(1, 1), session.ControlledCell);
             Assert.AreEqual(1, session.Turn);
         }
 
@@ -113,11 +122,15 @@ namespace SlimesRevenge.Tests
         public void Vacate_AllowsMovingOntoFormerRatCell()
         {
             var rat = new Vector2Int(2, 1);
-            var session = new GameSession(World.CreateGrass(3), new Vector2Int(1, 1), new[] { rat });
+            var session = SessionFactory.WithControlled(
+                World.CreateGrass(3),
+                new Vector2Int(1, 1),
+                rat
+            );
 
             session.Vacate(rat);
             Assert.IsTrue(session.TryStep(Vector2Int.right));
-            Assert.AreEqual(rat, session.PlayerCell);
+            Assert.AreEqual(rat, session.ControlledCell);
         }
 
         [Test]
@@ -135,7 +148,8 @@ namespace SlimesRevenge.Tests
             Assert.IsFalse(slime.IsAlive);
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = new GameObject(typeof(T).Name).AddComponent<T>();
             spawned.Add(creature.gameObject);

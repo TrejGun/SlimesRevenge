@@ -4,20 +4,27 @@ using UnityEngine;
 namespace SlimesRevenge
 {
     /// <summary>
-    /// Overrides Wander/Idle from Unity Behavior graphs.
-    /// Order: fear/flee first, then visible prey hunt, then last-known pursuit memory.
-    /// Prey/predator matching is driven by status <see cref="StatusEffect.IsPrey"/> /
-    /// <see cref="StatusEffect.IsPredator"/>.
+    /// Hunt redirect + pursuit memory after an act.
+    /// Order (on Wander/Idle only): fear/flee → visible prey → last-known pursuit.
+    /// Personality combat vs the slime is sticky via MarkAggro + RememberPursuit in AfterAct.
+    /// Prey/predator matching uses status <see cref="StatusEffect.IsPrey"/> /
+    /// <see cref="StatusEffect.IsPredator"/> (mob↔mob fear/hate).
     /// </summary>
     public static class CreatureHunt
     {
-        public static CreatureIntent Redirect(Creature self, CreatureIntent intent, IReadOnlyList<Creature> others)
+        public static CreatureIntent Redirect(
+            Creature self,
+            CreatureIntent intent,
+            IReadOnlyList<Creature> others
+        )
         {
             if (self == null)
             {
                 return intent;
             }
 
+            // Personality intent toward the slime wins when already Chase/Attack/Flee.
+            // Fear/hate only redirects from Wander/Idle (mob↔mob story spice).
             if (intent != CreatureIntent.Wander && intent != CreatureIntent.Idle)
             {
                 return intent;
@@ -38,7 +45,9 @@ namespace SlimesRevenge
             {
                 CreatureTurnContext.FocusTarget = prey;
                 self.RememberPursuit(prey.Cell);
-                return CreatureMoves.IsAdjacent(self, prey) ? CreatureIntent.Attack : CreatureIntent.Chase;
+                return CreatureMoves.IsAdjacent(self, prey)
+                    ? CreatureIntent.Attack
+                    : CreatureIntent.Chase;
             }
 
             if (self.PursuitCell != null && self.PursuitMemoryLeft > 0)
@@ -54,7 +63,8 @@ namespace SlimesRevenge
             Creature self,
             CreatureIntent intent,
             Creature focus,
-            IReadOnlyList<Creature> others)
+            IReadOnlyList<Creature> others
+        )
         {
             if (self == null)
             {
@@ -82,6 +92,43 @@ namespace SlimesRevenge
                 return;
             }
 
+            // Personality combat is slime-only: sticky aggro + last-known cell.
+            if (IsPlayerFocus(focus))
+            {
+                // Mark aggro only when actually engaging the slime — not when Chase runs with
+                // player as the default focus while walking to an unrelated PursuitCell.
+                if (
+                    intent == CreatureIntent.Attack
+                    || (intent == CreatureIntent.Chase && CreatureMoves.CanSee(self, focus))
+                )
+                {
+                    self.MarkAggro();
+                }
+
+                if (CreatureMoves.CanSee(self, focus))
+                {
+                    self.RememberPursuit(focus.Cell);
+                    return;
+                }
+
+                if (self.PursuitCell == null)
+                {
+                    return;
+                }
+
+                if (
+                    self.Cell == self.PursuitCell.Value
+                    || GridStep.IsAdjacent(self.Cell, self.PursuitCell.Value)
+                )
+                {
+                    self.ClearPursuit();
+                    return;
+                }
+
+                self.TickPursuitMemory();
+                return;
+            }
+
             var prey = focus != null && IsPreyOf(self, focus) ? focus : FindPrey(self, others);
             if (prey != null && CreatureMoves.CanSee(self, prey))
             {
@@ -95,8 +142,10 @@ namespace SlimesRevenge
             }
 
             // Arrived at (or onto) the last-known cell and still no sight → drop pursuit.
-            if (self.Cell == self.PursuitCell.Value
-                || GridStep.IsAdjacent(self.Cell, self.PursuitCell.Value))
+            if (
+                self.Cell == self.PursuitCell.Value
+                || GridStep.IsAdjacent(self.Cell, self.PursuitCell.Value)
+            )
             {
                 self.ClearPursuit();
                 return;
@@ -104,6 +153,8 @@ namespace SlimesRevenge
 
             self.TickPursuitMemory();
         }
+
+        private static bool IsPlayerFocus(Creature focus) => focus is Slime;
 
         public static Creature FindPrey(Creature self, IReadOnlyList<Creature> others)
         {
@@ -128,7 +179,8 @@ namespace SlimesRevenge
         private static bool MatchesTrait(
             Creature self,
             Creature other,
-            System.Func<StatusEffect, Creature, bool> match)
+            System.Func<StatusEffect, Creature, bool> match
+        )
         {
             if (self == null || other == null)
             {
@@ -154,10 +206,12 @@ namespace SlimesRevenge
                 return;
             }
 
-            if (self.FleeCell != null
+            if (
+                self.FleeCell != null
                 && session.World.IsTerrainWalkable(self.FleeCell.Value)
                 && !session.IsOccupied(self.FleeCell.Value)
-                && self.Cell != self.FleeCell.Value)
+                && self.Cell != self.FleeCell.Value
+            )
             {
                 return;
             }
@@ -174,7 +228,7 @@ namespace SlimesRevenge
                 for (var x = 0; x < session.World.Width; x++)
                 {
                     var cell = new Vector2Int(x, y);
-                    if (!session.World.IsTerrainWalkable(cell) || session.IsOccupied(cell) || cell == session.PlayerCell)
+                    if (!session.World.IsTerrainWalkable(cell) || session.IsOccupied(cell))
                     {
                         continue;
                     }
@@ -197,7 +251,8 @@ namespace SlimesRevenge
         private static Creature NearestMatching(
             Creature self,
             IReadOnlyList<Creature> others,
-            System.Func<Creature, bool> match)
+            System.Func<Creature, bool> match
+        )
         {
             if (self == null || match == null)
             {

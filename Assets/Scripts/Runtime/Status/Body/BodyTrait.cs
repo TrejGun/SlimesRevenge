@@ -7,8 +7,7 @@ namespace SlimesRevenge
     /// </summary>
     public abstract class BodyTrait : StatusEffect
     {
-        protected BodyTrait() : base(Forever)
-        {
-        }
+        protected BodyTrait()
+            : base(Forever) { }
     }
 }

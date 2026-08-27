@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace SlimesRevenge
 {
@@ -6,43 +7,72 @@ namespace SlimesRevenge
     {
         private static readonly KeyCode[] MoveKeys =
         {
-            KeyCode.W, KeyCode.A, KeyCode.S, KeyCode.D,
-            KeyCode.Alpha1, KeyCode.Alpha2, KeyCode.Alpha3,
-            KeyCode.Alpha4, KeyCode.Alpha5, KeyCode.Alpha6,
-            KeyCode.Alpha7, KeyCode.Alpha8, KeyCode.Alpha9,
-            KeyCode.Keypad1, KeyCode.Keypad2, KeyCode.Keypad3,
-            KeyCode.Keypad4, KeyCode.Keypad5, KeyCode.Keypad6,
-            KeyCode.Keypad7, KeyCode.Keypad8, KeyCode.Keypad9
+            KeyCode.W,
+            KeyCode.A,
+            KeyCode.S,
+            KeyCode.D,
+            KeyCode.Alpha1,
+            KeyCode.Alpha2,
+            KeyCode.Alpha3,
+            KeyCode.Alpha4,
+            KeyCode.Alpha5,
+            KeyCode.Alpha6,
+            KeyCode.Alpha7,
+            KeyCode.Alpha8,
+            KeyCode.Alpha9,
+            KeyCode.Keypad1,
+            KeyCode.Keypad2,
+            KeyCode.Keypad3,
+            KeyCode.Keypad4,
+            KeyCode.Keypad5,
+            KeyCode.Keypad6,
+            KeyCode.Keypad7,
+            KeyCode.Keypad8,
+            KeyCode.Keypad9,
         };
 
-        [SerializeField] private TurnManager turns;
-        [SerializeField] private WorldView worldView;
-        [SerializeField] private Slime slime;
-        [SerializeField] private Camera worldCamera;
-        [SerializeField] private float swipePixels = 48f;
+        [SerializeField]
+        private TurnManager turns;
 
-        private CombatMenu menu;
+        [SerializeField]
+        private WorldView worldView;
+
+        [SerializeField]
+        private Slime slime;
+
+        [SerializeField]
+        private Camera worldCamera;
+
+        [SerializeField]
+        private float swipePixels = 48f;
+
+        private CellMenu menu;
         private bool tracking;
         private bool fromSlime;
         private Vector2 pressScreen;
 
         private void Awake()
         {
-            menu = GetComponent<CombatMenu>();
+            menu = GetComponent<CellMenu>();
             if (menu == null)
             {
-                menu = gameObject.AddComponent<CombatMenu>();
+                menu = gameObject.AddComponent<CellMenu>();
             }
         }
 
         private void Update()
         {
-            if (turns == null || !turns.IsWaitingForInput || slime == null)
+            if (turns == null || !turns.IsWaitingForInput || slime == null || !slime.IsAlive)
             {
                 return;
             }
 
             if (menu != null && menu.BlocksInput)
+            {
+                return;
+            }
+
+            if (PopupHost.Instance != null && PopupHost.Instance.BlocksInput)
             {
                 return;
             }
@@ -65,7 +95,10 @@ namespace SlimesRevenge
         {
             foreach (var key in MoveKeys)
             {
-                if (!Input.GetKeyDown(key) || !GridStep.TryFromKey(key, out var offset, out var wait))
+                if (
+                    !Input.GetKeyDown(key)
+                    || !GridStep.TryFromKey(key, out var offset, out var wait)
+                )
                 {
                     continue;
                 }
@@ -123,6 +156,12 @@ namespace SlimesRevenge
 
         private void BeginPointer(Vector2 screen)
         {
+            if (IsPointerOverUi())
+            {
+                tracking = false;
+                return;
+            }
+
             if (!TryCellAt(screen, out var cell))
             {
                 tracking = false;
@@ -134,6 +173,21 @@ namespace SlimesRevenge
             pressScreen = screen;
             SetSelected(fromSlime);
             SetHighlight(cell);
+        }
+
+        private static bool IsPointerOverUi()
+        {
+            if (EventSystem.current == null)
+            {
+                return false;
+            }
+
+            if (Input.touchCount > 0)
+            {
+                return EventSystem.current.IsPointerOverGameObject(Input.GetTouch(0).fingerId);
+            }
+
+            return EventSystem.current.IsPointerOverGameObject();
         }
 
         private void MovePointer(Vector2 screen)
@@ -164,7 +218,7 @@ namespace SlimesRevenge
 
             if (fromSlime && delta.magnitude < swipePixels)
             {
-                OpenSelfMenu();
+                OpenCellMenu(slime.Cell);
                 ClearSelection();
                 return;
             }
@@ -173,7 +227,7 @@ namespace SlimesRevenge
             {
                 if (turns.Session != null && turns.Session.IsOccupied(cell))
                 {
-                    menu.OpenActions(slime.Volume.UniqueKinds(), substance => turns.TryAttack(cell, substance));
+                    OpenCellMenu(cell);
                 }
                 else
                 {
@@ -184,28 +238,23 @@ namespace SlimesRevenge
             ClearSelection();
         }
 
-        private void OpenSelfMenu()
+        private void OpenCellMenu(Vector2Int cell)
         {
-            if (turns.Session == null)
+            if (turns.Session == null || menu == null)
             {
                 return;
             }
 
             var floor = turns.Session.World.Floor;
-            var cell = slime.Cell;
-            var puddle = floor.GetPuddle(cell);
-            var corpses = floor.GetCorpses(cell);
-            var canMess = puddle == null && slime.Volume.UnitCount > 0;
-            var canCollect = puddle != null && slime.Volume.UnitCount < Volume.Capacity;
-            var canDevour = !slime.Digestion.IsBusy && corpses.Count > 0;
-            menu.OpenSelf(
-                slime.Volume.UniqueKinds(),
-                canMess,
-                canCollect,
-                canDevour ? corpses : System.Array.Empty<Creature>(),
-                substance => turns.TryMakeMess(substance),
-                () => turns.TryCollectPuddle(),
-                index => turns.TryDevourCorpse(index));
+            var ctx = new CellMenuContext(
+                cell,
+                slime,
+                turns.LivingAt(cell),
+                floor.GetPuddle(cell),
+                floor.GetCorpses(cell),
+                turns
+            );
+            menu.Open(ctx);
         }
 
         private void SetHighlight(Vector2Int cell)

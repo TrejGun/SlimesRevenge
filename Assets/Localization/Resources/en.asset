@@ -114,10 +114,6 @@ MonoBehaviour:
     m_Localized: Hates cats
     m_Metadata:
       m_Items: []
-  - m_Id: 26
-    m_Localized: Fears slimes
-    m_Metadata:
-      m_Items: []
   - m_Id: 27
     m_Localized: Fears cats
     m_Metadata:
@@ -132,5 +128,349 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 30
     m_Localized: Regeneration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 31
+    m_Localized: Info
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32
+    m_Localized: "{0} hits {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 33
+    m_Localized: "{0} hits {1} with {2}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 34
+    m_Localized: "{0} gains {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35
+    m_Localized: "{0} steps into {1} puddle"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36
+    m_Localized: "armor {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37
+    m_Localized: "HP {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 38
+    m_Localized: "volume {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 39
+    m_Localized: "{0} dies"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 40
+    m_Localized: Takes poison damage at the start of each turn.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 41
+    m_Localized: Acid strips armor each turn, then damages health once armor is gone. Washed off by Wet.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 42
+    m_Localized: Reduces Speed by 1 while active.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 43
+    m_Localized: Takes fire damage each turn. Doubled if Flammable. Extinguished by Wet.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 44
+    m_Localized: Soaked. Cancels Burning on contact. Washed off by Corroding.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 45
+    m_Localized: Immune to Burning.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 46
+    m_Localized: Doubles lava strike power and Burning damage.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 47
+    m_Localized: When hit while alive, applies a substance back at the attacker.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48
+    m_Localized: While blood is dominant, grows one Blood volume unit each turn if under capacity.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 49
+    m_Localized: Heals when drinking blood from puddles, retorts, or blood tips struck in melee.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 50
+    m_Localized: Immune to Poisoned. Melee applies Poisoned. Poison puddles cost nothing to path through.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 51
+    m_Localized: Hunts rats as prey.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 52
+    m_Localized: Hunts cats as prey.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 54
+    m_Localized: Flees from cats.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 55
+    m_Localized: Flees from dogs.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 56
+    m_Localized: Avoids water when pathfinding.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 57
+    m_Localized: "{0} turns"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 58
+    m_Localized: Forever
+    m_Metadata:
+      m_Items: []
+  - m_Id: 59
+    m_Localized: Back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 60
+    m_Localized: Volume
+    m_Metadata:
+      m_Items: []
+  - m_Id: 61
+    m_Localized: Statuses
+    m_Metadata:
+      m_Items: []
+  - m_Id: 62
+    m_Localized: Applies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 63
+    m_Localized: "Power {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 64
+    m_Localized: "Corrosion {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 65
+    m_Localized: none
+    m_Metadata:
+      m_Items: []
+  - m_Id: 66
+    m_Localized: "Loses {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 67
+    m_Localized: Retaliation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 68
+    m_Localized: "Heals {0} HP"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 69
+    m_Localized: "{0}'s turn"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 70
+    m_Localized: "{0} collects {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 71
+    m_Localized: "Dominance: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72
+    m_Localized: Dominance fades
+    m_Metadata:
+      m_Items: []
+  - m_Id: 73
+    m_Localized: "Grows {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 74
+    m_Localized: "{0} spills {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 75
+    m_Localized: "Finishes digesting {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76
+    m_Localized: Digesting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77
+    m_Localized: Absorbing a corpse over several turns; matter transfers only when finished.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 78
+    m_Localized: Slime
+    m_Metadata:
+      m_Items: []
+  - m_Id: 79
+    m_Localized: Rat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 80
+    m_Localized: Cat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 81
+    m_Localized: Dog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 82
+    m_Localized: Bat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 83
+    m_Localized: Scorpion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 84
+    m_Localized: " (Corpse)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 85
+    m_Localized: "Volume {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 86
+    m_Localized: "Dominant: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 87
+    m_Localized: "Digesting: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 88
+    m_Localized: "HP {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 89
+    m_Localized: "Armor {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 90
+    m_Localized: "Volume {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 91
+    m_Localized: "Decay {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 92
+    m_Localized: "{0} · {1} vol · {2}/{3} turns"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 93
+    m_Localized: "{0} puddle"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 94
+    m_Localized: "{0} begins digesting {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 95
+    m_Localized: Dominance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 96
+    m_Localized: "Run started in {0} mode"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 97
+    m_Localized: Hardcore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 98
+    m_Localized: Softcore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 99
+    m_Localized: Slime's Revenge
+    m_Metadata:
+      m_Items: []
+  - m_Id: 100
+    m_Localized: Duel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 101
+    m_Localized: Campaign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 102
+    m_Localized: Credits
+    m_Metadata:
+      m_Items: []
+  - m_Id: 103
+    m_Localized: Quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 104
+    m_Localized: Campaign — coming soon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 105
+    m_Localized: Credits
+    m_Metadata:
+      m_Items: []
+  - m_Id: 106
+    m_Localized: "TrejGun\nhello@trejgun.com"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 107
+    m_Localized: Duel setup
+    m_Metadata:
+      m_Items: []
+  - m_Id: 108
+    m_Localized: "Opponent: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 109
+    m_Localized: "Slot {0}: {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 110
+    m_Localized: Start duel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 111
+    m_Localized: Choose opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 112
+    m_Localized: "Slot {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 113
+    m_Localized: Next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 114
+    m_Localized: "▾"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 115
+    m_Localized: "▴"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 116
+    m_Localized: Duel started
+    m_Metadata:
+      m_Items: []
+  - m_Id: 117
+    m_Localized: "Campaign started in {0} mode"
     m_Metadata:
       m_Items: []

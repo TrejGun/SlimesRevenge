@@ -16,6 +16,13 @@ namespace SlimesRevenge
 
         public override Substance Clone() => new Acid();
 
+        public override void CollectApplyPreview(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            sink?.Add(new Corroding(corrosion: Corrosion));
+        }
+
         /// <summary>Strike and <see cref="Corroding"/> strip this many armor per hit/pulse.</summary>
         public override int Corrosion => 1;
 

@@ -16,6 +16,13 @@ namespace SlimesRevenge
 
         public override Substance Clone() => new Poison();
 
+        public override void CollectApplyPreview(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            sink?.Add(new Poisoned());
+        }
+
         protected override void OnApply(Creature target)
         {
             target.AddStatus(new Poisoned());

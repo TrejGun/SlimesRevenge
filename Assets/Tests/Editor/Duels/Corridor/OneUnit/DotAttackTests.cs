@@ -20,7 +20,12 @@ namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
         }
 
         [TestCaseSource(nameof(Cases))]
-        public void DotAttack_FullBurnout(Substance substance, System.Type beastType, int expectedHitPoints, bool beastAlive)
+        public void DotAttack_FullBurnout(
+            Substance substance,
+            System.Type beastType,
+            int expectedHitPoints,
+            bool beastAlive
+        )
         {
             var duel = StartCorridorDuel(beastType, substance);
             Assert.IsTrue(duel.Turns.TryAttack(CorridorFoeCell, Clone(substance)));
@@ -45,10 +50,16 @@ namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
             }
         }
 
-        private static TestCaseData Case(Substance substance, System.Type beastType, int hits, bool alive)
+        private static TestCaseData Case(
+            Substance substance,
+            System.Type beastType,
+            int hits,
+            bool alive
+        )
         {
-            return new TestCaseData(substance, beastType, hits, alive)
-                .SetName($"{substance.GetType().Name}_{beastType.Name}");
+            return new TestCaseData(substance, beastType, hits, alive).SetName(
+                $"{substance.GetType().Name}_{beastType.Name}"
+            );
         }
     }
 }

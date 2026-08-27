@@ -24,7 +24,6 @@ namespace SlimesRevenge
 
         protected override void SeedInnateTraits()
         {
-            EnsureInnate<FearsSlimes>();
             EnsureInnate<FearsCats>();
         }
     }

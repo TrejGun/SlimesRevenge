@@ -16,6 +16,13 @@ namespace SlimesRevenge
 
         public override Substance Clone() => new Water();
 
+        public override void CollectApplyPreview(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            sink?.Add(new Wet());
+        }
+
         protected override void OnApply(Creature target)
         {
             // Always try Wet; Burning/Corroding CancelsWith(Wet) extinguish without applying Wet.
@@ -34,7 +41,28 @@ namespace SlimesRevenge
             return base.FindDominanceStatus<T>();
         }
 
-        public override void ApplyDominance(Creature slime, System.Collections.Generic.IList<StatusEffect> queue)
+        public override void CollectDominancePassives(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            if (sink == null)
+            {
+                return;
+            }
+
+            var fireproof = FindDominanceStatus<Fireproof>();
+            if (fireproof != null)
+            {
+                sink.Add(fireproof);
+            }
+
+            base.CollectDominancePassives(sink);
+        }
+
+        public override void ApplyDominance(
+            Creature slime,
+            System.Collections.Generic.IList<StatusEffect> queue
+        )
         {
             if (queue == null)
             {

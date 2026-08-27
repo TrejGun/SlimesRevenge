@@ -15,6 +15,8 @@
 | --- | --- |
 | `FindDominanceStatus` / `DominanceBlocks` / `ApplyDominance` | субстанция |
 | `Blocks` / `CancelsWith` / `ClearedWhenDominanceChanges` | статус |
-| огонь ×2 | `Flammable.Amplify` ↔ Oil / Burning / Lava |
+| огонь ×2 | `Flammable.ModifyIncomingHarm` ↔ Oil / Burning / Lava |
 
 Слайм по-прежнему через `is Slime`. Очередь тикает FIFO; пассивы доминанта в пульс не входят.
+
+Полный каталог статусов (удар / лужа / доминанта / innate): [status-effects.md](status-effects.md).

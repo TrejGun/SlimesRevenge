@@ -54,6 +54,42 @@ namespace SlimesRevenge
             return entry.LocalizedValue;
         }
 
+        /// <summary>Like <see cref="Get"/> but never throws — returns <paramref name="fallback"/>.</summary>
+        public static string GetOr(string key, string fallback)
+        {
+            try
+            {
+                return Get(key);
+            }
+            catch
+            {
+                return fallback ?? string.Empty;
+            }
+        }
+
+        public static string Format(string key, params object[] args)
+        {
+            return string.Format(Get(key), args);
+        }
+
+        public static string FormatOr(string key, string fallbackFormat, params object[] args)
+        {
+            try
+            {
+                return string.Format(Get(key), args);
+            }
+            catch
+            {
+                return string.Format(fallbackFormat ?? string.Empty, args);
+            }
+        }
+
+        /// <summary>Localized creature name for logs, menus, and cards.</summary>
+        public static string Creature(CreatureKind kind)
+        {
+            return GetOr(TextKey.ForCreature(kind), kind.ToString());
+        }
+
         private static string DefaultCode()
         {
             return Application.systemLanguage == SystemLanguage.Russian ? Russian : English;

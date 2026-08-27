@@ -17,7 +17,9 @@ namespace SlimesRevenge
             Screen.orientation = ScreenOrientation.LandscapeLeft;
 #if UNITY_STANDALONE || UNITY_EDITOR
             ApplyLandscapeWindow();
-            var runner = new GameObject("LandscapeBootstrap").AddComponent<LandscapeBootstrapRunner>();
+            var runner = new GameObject(
+                "LandscapeBootstrap"
+            ).AddComponent<LandscapeBootstrapRunner>();
             Object.DontDestroyOnLoad(runner.gameObject);
 #endif
         }

@@ -1,0 +1,300 @@
+---
+description: Dependency inversion — statuses apply via hooks; board/occupied does not require a controlled player.
+globs:
+  - Assets/Scripts/Runtime/Status/**/*.cs
+  - Assets/Scripts/Runtime/Turns/Combat.cs
+  - Assets/Scripts/Runtime/Turns/TurnManager.cs
+  - Assets/Scripts/Runtime/Turns/GameSession.cs
+  - Assets/Scripts/Runtime/Creatures/Creature.cs
+  - Assets/Scripts/Runtime/Volume/**/*.cs
+  - Assets/Scripts/Runtime/Behavior/CreatureHunt.cs
+  - Assets/Scripts/Runtime/Behavior/CreatureMoves.cs
+  - Assets/Scripts/Runtime/World/Floor.cs
+  - Assets/Scripts/Runtime/World/GridPath.cs
+  - Assets/Tests/Editor/Behavior/DogCatHuntSimulationTests.cs
+  - Assets/Tests/Editor/TestSupport/SessionFactory.cs
+  - docs/status-effects.md
+  - docs/strike-vs-puddle.md
+  - docs/architecture/dependency-inversion.md
+  - docs/behavior.md
+alwaysApply: false
+---
+
+# Dependency inversion
+
+Two layers, one principle: **depend on hooks / board abstractions, not on concrete skills or a mandatory player.**
+
+Canon: [docs/architecture/dependency-inversion.md](docs/architecture/dependency-inversion.md). Status catalog: [docs/status-effects.md](docs/status-effects.md). Strike vs puddle: [docs/strike-vs-puddle.md](docs/strike-vs-puddle.md).
+
+---
+
+# Status / skill dependency inversion
+
+**Combat, movers, and pathfinding do not know which skills exist.** They emit neutral events or ask generic questions. **Statuses (skills) apply themselves** by overriding hooks on `StatusEffect`.
+
+## Intent
+
+- Adding `Poisonous`, `Vampirism`, `Retaliation`, `FearsDogs`, etc. must **not** require editing `Combat.Attack`, `CreatureMoves`, or `GridPath` with new `is` / `FindStatus<T>` branches.
+- The owner of the rule is the status class (or `Substance.Apply` for residue), not the combat orchestrator.
+- Hunt fear/hate is the same idea: `CreatureHunt` only asks `IsPrey` / `IsPredator` on whatever statuses the creature already has.
+
+## Extension points (use these)
+
+| Hook / API | Who calls it | Who implements behavior |
+| --- | --- | --- |
+| `StatusEffect.OnOwnerDealtMeleeHit` | `Creature.NotifyDealtMeleeHit` ← Combat melee | e.g. `Poisonous` applies `Poisoned` |
+| `StatusEffect.OnOwnerSurvivedHit` | Combat after damage (snapshot if `CapturesSurvivedHitReaction`) | e.g. `Retaliation` retort |
+| `StatusEffect.OnOwnerReceivedSubstance` | After `Substance.Apply` | e.g. `Vampirism` heal on Blood |
+| `StatusEffect.OnOwnerStruckVolumeTip` | Combat when a volume tip is knocked | e.g. `Vampirism` |
+| `StatusEffect.Blocks` / `CancelsWith` | Status queue apply path | immunity / Wet↔Burning |
+| `StatusEffect.ModifyIncomingHarm` | Harm pipeline | e.g. `Flammable` multiplier |
+| `StatusEffect.FloorPriorityOverride` | `Substance.FloorPriorityFor(walker)` ← `GridPath` penalties | e.g. `Poisonous` → poison cost 0; `FearsWater` |
+| `StatusEffect.IsPrey` / `IsPredator` | `CreatureHunt` | `HatesCats`, `FearsDogs`, … |
+| `StatusEffect.SpeedModifier` | `Creature.Speed` | e.g. `Instability` |
+| `Substance.Apply(Creature)` | Combat strike / Floor puddle contact | hang timed statuses; **not** Combat switching on substance type beyond calling Apply |
+
+Combat may still do **generic** work: damage, armor strip amounts from the substance, begin/end action-log, call `Apply`, notify hooks. It must not encode skill names.
+
+## Hard rules
+
+1. **No skill switches in Combat.** Forbidden: `if (attacker.FindStatus<Poisonous>() != null) target.AddStatus(new Poisoned())`.
+2. **No skill switches in pathfinding.** Forbidden: `if (walker is Scorpion) penalty = 0` for poison. Use `FloorPriorityOverride` on the trait.
+3. **No skill switches in hunt matching.** Forbidden: `if (self is Dog && other is Cat)`. Use `IsPrey` / `IsPredator` on innate traits.
+4. **Notify, don’t interpret.** Combat calls `NotifyDealtMeleeHit` / survived-hit / substance received; statuses decide.
+5. **Personality ≠ status.** Slime attitude is `CreaturePersonality` + aggro. Do **not** add `FearsSlimes` / `HatesSlimes` statuses.
+6. **Same Apply for strike and puddle.** Substance residue goes through `Substance.Apply`; puddle contact does not reinvent status tables inside `Floor`.
+
+## Examples
+
+### Melee on-hit poison
+
+```csharp
+// ❌ BAD — Combat knows about Poisonous
+afterMelee: () =>
+{
+    if (attacker.FindStatus<Poisonous>() != null)
+    {
+        target.AddStatus(new Poisoned());
+    }
+}
+```
+
+```csharp
+// ✅ GOOD — Combat only notifies; Poisonous owns the rule
+afterMelee: () => attacker?.NotifyDealtMeleeHit(target);
+
+// Poisonous.cs
+public override void OnOwnerDealtMeleeHit(Creature owner, Creature target)
+{
+    target.AddStatus(new Poisoned());
+}
+```
+
+### Retaliation after a hit
+
+```csharp
+// ❌ BAD — Combat special-cases Retaliation / dominant substance
+if (target.FindStatus<Retaliation>() is Retaliation r)
+{
+    r.Retort.Apply(attacker);
+}
+```
+
+```csharp
+// ✅ GOOD — snapshot statuses that opt in, then generic notify
+var reactions = target.CaptureSurvivedHitReactions(); // CapturesSurvivedHitReaction
+// ... deal damage ...
+foreach (var status in reactions)
+{
+    status.OnOwnerSurvivedHit(target, attacker);
+}
+```
+
+### Vampirism on blood
+
+```csharp
+// ❌ BAD — Combat or Blood.Apply checks Vampirism by type from outside
+if (target.FindStatus<Vampirism>() != null) target.Heal(2);
+```
+
+```csharp
+// ✅ GOOD — Blood.Apply stays dumb; Vampirism reacts to received substance
+// Substance.Apply / NotifyReceivedSubstance
+public override void OnOwnerReceivedSubstance(Creature owner, Substance substance)
+{
+    if (substance is Blood) owner.Heal(Vampirism.HealAmount);
+}
+```
+
+### Immunity / blocking
+
+```csharp
+// ❌ BAD — Apply path hardcodes Poisonous
+if (incoming is Poisoned && creature.FindStatus<Poisonous>() != null) return;
+```
+
+```csharp
+// ✅ GOOD — queue asks each status
+public override bool Blocks(StatusEffect incoming) => incoming is Poisoned;
+```
+
+### Floor path cost (poison / water fear)
+
+```csharp
+// ❌ BAD — GridPath knows creature kinds / skill names
+uint FloorPenalty(Creature walker, Substance s)
+{
+    if (s is Poison && walker.FindStatus<Poisonous>() != null) return 0;
+    if (s is Water && walker.FindStatus<FearsWater>() != null) return 100000;
+    return (uint)(s.FloorPriority * 1000);
+}
+```
+
+```csharp
+// ✅ GOOD — substance asks the walker; traits override
+public virtual int FloorPriorityFor(Creature walker)
+{
+    if (walker != null)
+    {
+        foreach (var status in walker.Statuses)
+        {
+            var value = status.FloorPriorityOverride(this);
+            if (value != null) return value.Value;
+        }
+    }
+    return FloorPriority;
+}
+
+// Poisonous.cs
+public override int? FloorPriorityOverride(Substance substance)
+    => substance is Poison ? 0 : null;
+```
+
+### Hunt prey / predator
+
+```csharp
+// ❌ BAD — CreatureHunt switches on concrete types
+if (self is Dog) return others.OfType<Cat>().FirstOrDefault();
+if (self is Cat) return others.OfType<Rat>().FirstOrDefault();
+```
+
+```csharp
+// ✅ GOOD — traits declare prey/predator
+return NearestMatching(self, others, other => IsPreyOf(self, other));
+
+public static bool IsPreyOf(Creature self, Creature other)
+    => MatchesTrait(self, other, (trait, c) => trait.IsPrey(c));
+
+// HatesCats.cs
+public override bool IsPrey(Creature other) => other is Cat;
+```
+
+### Speed modifiers
+
+```csharp
+// ❌ BAD — Creature.Speed lists status types
+if (FindStatus<Instability>() != null) value -= 1;
+```
+
+```csharp
+// ✅ GOOD — generic fold
+foreach (var status in statuses)
+{
+    value += status.SpeedModifier;
+}
+```
+
+### Wet extinguishes fire (interaction between statuses)
+
+```csharp
+// ❌ BAD — Floor or Combat: if Wet applied, remove Burning manually by name in the caller
+creature.AddStatus(new Wet());
+creature.RemoveStatus<Burning>();
+```
+
+```csharp
+// ✅ GOOD — Wet / Burning declare CancelsWith; queue resolves mutual cancel
+public override bool CancelsWith(StatusEffect incoming) => incoming is Burning;
+```
+
+### Substance Apply vs Combat tables
+
+```csharp
+// ❌ BAD — Combat encodes the whole substance→status matrix
+if (substance is Lava) target.AddStatus(new Burning());
+else if (substance is Acid) target.AddStatus(new Corroding());
+else if (substance is Poison) target.AddStatus(new Poisoned());
+```
+
+```csharp
+// ✅ GOOD — Combat calls Apply once; each Substance owns its residue
+afterDamageAlive: () => substance.Apply(target);
+
+// Lava.Apply → Burning (respecting Fireproof via Blocks / dominance)
+// Acid.Apply → Corroding
+// Poison.Apply → Poisoned (Poisonous.Blocks)
+```
+
+### New skill checklist
+
+When adding a skill/status:
+
+1. Create/extend a `StatusEffect` (often `InnateTrait` / `BodyTrait` / `OverTime`).
+2. Override the smallest hook that expresses the rule.
+3. Wire innate seeding on the creature (`EnsureInnate<T>`), not a Combat branch.
+4. Add tests under `Assets/Tests/Editor/Status` (and hunt/path tests if `IsPrey` / `FloorPriorityOverride` changed).
+5. Confirm `Combat.cs` / `GridPath.cs` / `CreatureMoves.cs` gained **no** new `FindStatus<ConcreteSkill>` checks.
+
+## Anti-patterns to reject in review
+
+- `Combat` importing and switching on concrete status types for gameplay effects.
+- `CreatureHunt` / `CreatureMoves` listing creature pairs instead of `IsPrey` / `IsPredator`.
+- `GridPath` branching on `CreatureKind` for puddle costs.
+- Duplicating the substance→status matrix outside `Substance.Apply` / dominance helpers.
+- Introducing `FearsSlimes` to replace Cowardly personality.
+
+
+---
+
+# World ↛ player
+
+**The board does not require a controlled creature.** `World` + `GameSession.occupied` stand alone. Player input is optional via `ControlledCell` / `TurnManager.Controlled`. Personality focus (`CreatureTurnContext.Player`) is nullable.
+
+## Hard rules
+
+1. **Unified occupied.** Every living body (including the slime when present) is in `occupied`. No `PlayerCell` hole outside the set.
+2. **No PlayerCell hard-blocks in Moves/Hunt.** Forbidden: `to != PlayerCell`, `cell == session.PlayerCell` as a special terrain rule.
+3. **Controlled is optional.** `SetControlled(null)` / `Bind(world, controlled: null, …)` / `TakeTurn(..., player: null)` are valid.
+4. **Hunt sims must not fake a slime.** Forbidden: inflate the map to 20×20 and park slime at `(19,19)` so Aggressive never sees it. Prefer board-only + `player: null`.
+5. **Null player → Idle/Wander → hunt.** Do not add `if (!HasPlayer)` inside Combat; let Behavior conditions fail and Redirect own mob↔mob.
+
+## Examples
+
+```csharp
+// ❌ BAD — mandatory player cell outside occupied; Moves special-cases PlayerCell
+public GameSession(World world, Vector2Int playerCell, IEnumerable<Vector2Int> occupants)
+{
+    PlayerCell = playerCell; // not in occupied
+}
+if (to != session.PlayerCell && !session.IsOccupied(to)) { ... }
+```
+
+```csharp
+// ✅ GOOD — all bodies in occupied; controlled optional
+var session = new GameSession(world, allCells);
+session.SetControlled(slime?.Cell);
+```
+
+```csharp
+// ❌ BAD — hunt test pads the map to hide a slime from Aggressive vision
+var world = World.CreateGrass(20);
+var player = Spawn<Slime>(new Vector2Int(19, 19));
+dog.TakeTurn(session, player, rng, others);
+```
+
+```csharp
+// ✅ GOOD — board-only hunt
+var world = World.CreateGrass(10);
+var session = SessionFactory.Board(world, dog, cat);
+dog.TakeTurn(session, player: null, rng, others);
+```

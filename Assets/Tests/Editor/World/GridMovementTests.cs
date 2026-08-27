@@ -11,7 +11,7 @@ namespace SlimesRevenge.Tests
             var session = OpenArena(new Vector2Int(1, 1));
 
             Assert.IsTrue(Press(session, KeyCode.D));
-            Assert.AreEqual(new Vector2Int(2, 1), session.PlayerCell);
+            Assert.AreEqual(new Vector2Int(2, 1), session.ControlledCell);
         }
 
         [Test]
@@ -20,7 +20,7 @@ namespace SlimesRevenge.Tests
             var session = OpenArena(new Vector2Int(0, 1));
 
             Assert.IsFalse(Press(session, KeyCode.A));
-            Assert.AreEqual(new Vector2Int(0, 1), session.PlayerCell);
+            Assert.AreEqual(new Vector2Int(0, 1), session.ControlledCell);
             Assert.AreEqual(0, session.Turn);
         }
 
@@ -31,7 +31,7 @@ namespace SlimesRevenge.Tests
             var session = OpenArena(new Vector2Int(1, 1), rat);
 
             Assert.IsFalse(Press(session, KeyCode.D));
-            Assert.AreEqual(new Vector2Int(1, 1), session.PlayerCell);
+            Assert.AreEqual(new Vector2Int(1, 1), session.ControlledCell);
             Assert.AreEqual(0, session.Turn);
         }
 
@@ -41,7 +41,7 @@ namespace SlimesRevenge.Tests
             var session = OpenArena(new Vector2Int(1, 1));
 
             Assert.IsTrue(Press(session, KeyCode.Keypad9));
-            Assert.AreEqual(new Vector2Int(2, 2), session.PlayerCell);
+            Assert.AreEqual(new Vector2Int(2, 2), session.ControlledCell);
         }
 
         [Test]
@@ -50,7 +50,7 @@ namespace SlimesRevenge.Tests
             var session = OpenArena(new Vector2Int(1, 1));
 
             Assert.IsFalse(session.TryMoveTo(new Vector2Int(1, 1) + Vector2Int.right * 2));
-            Assert.AreEqual(new Vector2Int(1, 1), session.PlayerCell);
+            Assert.AreEqual(new Vector2Int(1, 1), session.ControlledCell);
         }
 
         [Test]
@@ -68,7 +68,7 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(3, world.Width);
             Assert.AreEqual(3, world.Height);
             Assert.AreEqual(new Vector2Int(1, 1), world.Center);
-            return new GameSession(world, slime, others);
+            return SessionFactory.WithControlled(world, slime, others);
         }
 
         private static bool Press(GameSession session, KeyCode key)

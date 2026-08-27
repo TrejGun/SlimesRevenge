@@ -81,18 +81,13 @@ namespace SlimesRevenge.Tests
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
             turns.TrySoftcoreContinue = () =>
-            {
-                slime.gameObject.SetActive(true);
-                slime.SetMaxHitPoints(0);
-                slime.Volume.Add(new Water());
-                slime.RefreshVolumeStatuses();
-                return true;
-            };
+                SoftcoreRevive.TryContinue(turns, slime, turns.Session?.World);
             turns.Bind(new World(10, 1, TerrainType.Grass), slime);
 
             Assert.IsFalse(turns.IsGameOver);
             Assert.IsTrue(slime.IsAlive);
-            Assert.AreEqual(1, slime.Volume.UnitCount);
+            Assert.AreEqual(SoftcoreRevive.SpawnPoolWater, slime.Volume.UnitCount);
+            Assert.AreEqual(SoftcoreRevive.SpawnPoolWater, slime.Volume.CountOf<Water>());
         }
 
         [Test]
@@ -125,11 +120,12 @@ namespace SlimesRevenge.Tests
         {
             public int Pulses;
 
-            public PulseProbe() : base(3)
-            {
-            }
+            public PulseProbe()
+                : base(3) { }
 
             public override string Label => "probe";
+
+            public override string Description => string.Empty;
 
             protected override void OnPulse(Creature creature)
             {

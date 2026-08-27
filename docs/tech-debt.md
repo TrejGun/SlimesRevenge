@@ -6,7 +6,7 @@
 
 1. **Огромный untracked `Assets/AstarPathfindingProject/`** — вендорная библиотека. Коммитить отдельно (или submodule), не вместе с механикой статусов/брони.
 2. **Art churn** (Animals/Slimes, удаление Tiles/старого Slime.png, Title.png) — отдельный art-коммит; уже был прецедент с ElvGames в `8d7177cb`.
-3. **A\* EditMode flaky**: часть `AstarGridPathTests` падает из‑за загрязнения синглтона графа между тестами (`Astar_FindsPathOnOpenGrass`, `Astar_NoPath_WhenFullyWalledOff`, `Astar_TreatsPuddleAsWalkable`). Ранги `FloorPriority` при этом зелёные. Нужен teardown/`AstarPath.active` reset — иначе CI будет красным.
+3. **A\* teardown**: `GridPath` обязан `DestroyImmediate` temp host и сбрасывать `AstarPath.active`. Отложенный `Destroy` в Play Mode оставлял дохлый синглтон → chase/flee замирали после первого pathfind (баг дуэли: собака укусила и перестала догонять). EditMode раньше маскировал это `DestroyImmediate`.
 
 ## Геймплей — принятый долг (можно жить, но зафиксировать)
 

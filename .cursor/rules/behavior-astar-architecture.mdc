@@ -1,0 +1,200 @@
+---
+description: Mob AI architecture — Unity Behavior decides intent; A* Pathfinding Project picks the step. No DIY chase heuristics.
+globs:
+  - Assets/Scripts/Runtime/Behavior/**/*.cs
+  - Assets/Scripts/Runtime/World/GridPath.cs
+  - Assets/Scripts/Runtime/World/GridStep.cs
+  - Assets/Tests/Editor/Behavior/**/*.cs
+  - Assets/Tests/Editor/World/GridPathTests.cs
+  - docs/behavior.md
+alwaysApply: false
+---
+
+# Behavior + A* architecture
+
+Mob turns are a **two-library pipeline**. Do not replace either half with a custom C# brain or a home-grown path scorer.
+
+Related design notes: [docs/behavior.md](docs/behavior.md).
+
+## Intent (architecture goal)
+
+| Step | Library / owner | Responsibility |
+| --- | --- | --- |
+| 1. **Decide** | **Unity Behavior** (`CreaturePolicyGraphs`, conditions, select actions) | Choose *what*: `Attack` / `Chase` / `Flee` / `Wander` / `Idle` |
+| 2. **Redirect** | `CreatureHunt.Redirect` (thin glue) | Fear/hate only when personality returned Idle/Wander; sticky slime pursuit |
+| 3. **Move** | **A* Pathfinding Project** via `GridPath` | Choose *where* to step this turn (grid path, Speed steps along `ab.path`) |
+
+Personality graphs answer **policy toward the slime**. Innate fear/hate answers **mob↔mob** story fights. There is **no** `FearsSlimes` status.
+
+## Hard rules
+
+1. **Keep Unity Behavior for Decide.** Do not replace `CreatureBrain.Decide` with a plain-C# `switch (personality)` brain that invents intents.
+2. **Keep A* Pathfinding Project for walk destinations.** `GridPath.Find` / `TryWalk` must build a temp `AstarPath` + `GridGraph`, run `ABPath`, convert **`ab.path` / `GridNodeBase` indices** (not zigzaggy `vectorPath`), then take at most `Speed` path steps.
+3. **No DIY “best cell” chase.** Forbidden: ring scans around the actor, Chebyshev-greedy `BestToward` / `Filtered` pickers, custom per-turn A* written in-repo that bypasses the package.
+4. **Goals are OK; move picking is not.** Listing approach cells around a target (or a flee waypoint from `PickFleeCell`) as **A\* goals** is allowed. Iterating neighbors and scoring “closest to target” as the *step* is not.
+5. **Bind before tick.** Behavior conditions read `CreatureTurnContext.Actor` / bound graph `GameObject`. Proofs: `BehaviorGraphBindOwnerProofTests`.
+6. **Destroy temp A\* hosts.** Always `DestroyImmediate` the temporary `AstarPath` host after the query (see `GridPath`), or later Play Mode chases silently fail.
+7. **Query nodes at integer centers.** Construct paths from `GridNode` positions / aligned points — half-cell probes (`x+0.5`) snap to the wrong start and under-close Speed-2 chases.
+
+## Allowed glue (not a third pathfinder)
+
+- `CreatureHunt.Redirect` / `AfterAct` — fear/hate + pursuit memory after Behavior chose Idle/Wander or after an act.
+- `ApproachCells` — goal set for A\* (adjacent walkable cells around the focus).
+- `PickFleeCell` — single flee **waypoint** (goal). Walking to it still goes through `GridPath.TryWalk`.
+- Flee may reject an A\* prefix that does not increase distance from the threat and fall back to an **adjacent** farther cell — that is still not chase-style BestToward.
+- Floor penalties via `Substance.FloorPriorityFor(walker)` → node `Penalty` on the A\* graph (soft cost, not a hard block).
+
+## Examples
+
+### Decide: Behavior graph vs hand-rolled brain
+
+```csharp
+// ❌ BAD — custom personality brain bypasses Unity Behavior
+CreatureIntent Decide(Creature self, Creature player)
+{
+    if (self.Personality == CreaturePersonality.Aggressive
+        && CreatureMoves.CanSee(self, player))
+    {
+        return CreatureMoves.IsAdjacent(self, player)
+            ? CreatureIntent.Attack
+            : CreatureIntent.Chase;
+    }
+
+    return CreatureIntent.Idle;
+}
+```
+
+```csharp
+// ✅ GOOD — tick the personality Behavior graph
+CreatureIntent Decide(Creature self)
+{
+    CreatureTurnContext.SetActor(self);
+    var graph = CreaturePolicyGraphs.For(self.Personality);
+    CreaturePolicyGraphs.BindOwner(graph, self.gameObject);
+    graph.End();
+    graph.Start();
+    graph.Tick();
+    var intent = CreatureTurnContext.ChosenIntent;
+    return intent == CreatureIntent.None ? CreatureIntent.Idle : intent;
+}
+```
+
+### Chase step: A* path vs greedy neighbor score
+
+```csharp
+// ❌ BAD — DIY “best toward” (ring / neighbor heuristic). Forbidden.
+Vector2Int BestToward(Vector2Int from, Vector2Int target, Func<Vector2Int, bool> blocked, int speed)
+{
+    Vector2Int best = from;
+    var bestScore = int.MaxValue;
+    for (var y = -speed; y <= speed; y++)
+    for (var x = -speed; x <= speed; x++)
+    {
+        var cell = from + new Vector2Int(x, y);
+        if (blocked(cell)) continue;
+        var score = GridStep.Chebyshev(cell, target);
+        if (score < bestScore) { bestScore = score; best = cell; }
+    }
+    return best;
+}
+```
+
+```csharp
+// ✅ GOOD — goals only; A* Pathfinding Project picks the walk
+var goals = ApproachCells(session, focus.Cell, self.Cell);
+return GridPath.TryWalk(
+    session.World,
+    self.Cell,
+    goals,
+    cell => IsBlocked(session, self.Cell, cell),
+    self.Speed,
+    out var destination,
+    self)
+    && TryStep(self, session, new List<Vector2Int> { destination }, rng);
+```
+
+### Path extraction: node path vs vectorPath / Chebyshev teleport
+
+```csharp
+// ❌ BAD — walk by Chebyshev along vectorPath (teleports through blockers / zigzags)
+destination = vectorPath
+    .Select(ToCell)
+    .Last(cell => GridStep.Chebyshev(from, cell) <= speed);
+```
+
+```csharp
+// ✅ GOOD — at most Speed indices along contiguous GridNode path
+var steps = Mathf.Min(Mathf.Max(1, maxStep), path.Count);
+destination = path[steps - 1];
+while (steps > 0 && GridStep.Chebyshev(from, path[steps - 1]) > maxStep)
+{
+    steps--;
+}
+destination = path[steps - 1];
+```
+
+### In-repo A* that replaces the package
+
+```csharp
+// ❌ BAD — second pathfinder in World/ that “fixes” chase without the package
+public static List<Vector2Int> FindDiyAstar(...) { /* PriorityQueue + neighbors */ }
+```
+
+```csharp
+// ✅ GOOD — temporary GridGraph + ABPath from A* Pathfinding Project
+var gg = astar.data.AddGraph(typeof(GridGraph)) as GridGraph;
+gg.neighbours = NumNeighbours.Eight;
+astar.Scan(gg);
+// mark Walkable / Penalty, CalculateConnections, FloodFill
+var ab = ABPath.Construct((Vector3)startNode.position, (Vector3)goalNode.position, null);
+AstarPath.StartPath(ab);
+ab.BlockUntilCalculated();
+var cells = ToCells(start, ab.path); // GridNodeBase indices, contiguous
+```
+
+### Fear/hate redirect (Idle/Wander only)
+
+```csharp
+// ❌ BAD — Combat or Decide hardcodes “dogs always chase cats”
+if (self is Dog && other is Cat) return CreatureIntent.Chase;
+```
+
+```csharp
+// ✅ GOOD — Behavior returned Idle/Wander; Redirect asks statuses
+if (intent != CreatureIntent.Wander && intent != CreatureIntent.Idle)
+{
+    return intent; // personality vs slime already decided
+}
+
+var predator = FindPredator(self, others); // StatusEffect.IsPredator
+if (predator != null)
+{
+    CreatureTurnContext.FocusTarget = predator;
+    EnsureFleeWaypoint(self, predator, session);
+    return CreatureIntent.Flee;
+}
+```
+
+### Hunt tests (board-only)
+
+Mob↔mob hunts must **not** require a slime. Prefer `SessionFactory.Board` + `TakeTurn(..., player: null)`. Do not inflate the map or park a slime at `(19,19)` to dodge Aggressive vision — see [docs/architecture/dependency-inversion.md](docs/architecture/dependency-inversion.md).
+
+```csharp
+// ❌ BAD — fake far slime so Aggressive never steals focus
+var player = Spawn<Slime>(new Vector2Int(19, 19));
+dog.TakeTurn(session, player, rng, others);
+```
+
+```csharp
+// ✅ GOOD — no controlled player; hunt redirect owns intents
+var session = SessionFactory.Board(world, dog, cat);
+dog.TakeTurn(session, player: null, rng, others);
+```
+
+## Checklist before merging AI / path changes
+
+- [ ] Decide still ticks Unity Behavior (`CreaturePolicyGraphs` / conditions).
+- [ ] Walk still goes through `GridPath` → A* Pathfinding Project.
+- [ ] No new neighbor-ring / BestToward / Filtered chase picker.
+- [ ] Temp `AstarPath` host destroyed; paths contiguous from the real start node.
+- [ ] Focused EditMode: `BehaviorRulesTests`, `GridPathTests`, `DogCatHuntSimulationTests` as relevant.

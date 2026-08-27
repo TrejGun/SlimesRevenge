@@ -34,7 +34,7 @@ namespace SlimesRevenge.Tests
                 new Poison(),
                 new Acid(),
                 new Blood(),
-                new Lava()
+                new Lava(),
             };
             var colors = new HashSet<Color>();
             foreach (var substance in substances)

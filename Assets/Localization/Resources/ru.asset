@@ -114,10 +114,6 @@ MonoBehaviour:
     m_Localized: Не любит кошек
     m_Metadata:
       m_Items: []
-  - m_Id: 26
-    m_Localized: Боится слаймов
-    m_Metadata:
-      m_Items: []
   - m_Id: 27
     m_Localized: Боится котов
     m_Metadata:
@@ -132,5 +128,349 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 30
     m_Localized: Регенерация
+    m_Metadata:
+      m_Items: []
+  - m_Id: 31
+    m_Localized: Инфо
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32
+    m_Localized: "{0} бьёт {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 33
+    m_Localized: "{0} бьёт {1} ({2})"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 34
+    m_Localized: "{0} получает {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35
+    m_Localized: "{0} наступает на лужу ({1})"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36
+    m_Localized: "броня {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37
+    m_Localized: "ОЗ {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 38
+    m_Localized: "объём {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 39
+    m_Localized: "{0} умирает"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 40
+    m_Localized: В начале каждого хода получает урон от яда.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 41
+    m_Localized: Кислота снимает броню каждый ход, затем бьёт по здоровью. Смывается промоканием.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 42
+    m_Localized: Пока действует, снижает Скорость на 1.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 43
+    m_Localized: Каждый ход получает урон огнём. Удваивается при Огнеопасности. Тушится промоканием.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 44
+    m_Localized: Промокший. Гасит горение при контакте. Смывается кислотой.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 45
+    m_Localized: Иммунитет к горению.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 46
+    m_Localized: Удваивает силу удара лавой и урон от горения.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 47
+    m_Localized: При ударе, пока жив, отвечает веществом по атакующему.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48
+    m_Localized: Пока доминирует кровь, каждый ход добавляет единицу Крови, если есть место.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 49
+    m_Localized: Лечится, выпивая кровь из луж, ответных ударов или кончика объёма в ближнем бою.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 50
+    m_Localized: Иммунитет к яду. Ближний бой накладывает Отравление. Лужи яда не замедляют путь.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 51
+    m_Localized: Охотится на крыс.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 52
+    m_Localized: Охотится на кошек.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 54
+    m_Localized: Убегает от кошек.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 55
+    m_Localized: Убегает от собак.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 56
+    m_Localized: При поиске пути избегает воды.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 57
+    m_Localized: "{0} ходов"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 58
+    m_Localized: Навсегда
+    m_Metadata:
+      m_Items: []
+  - m_Id: 59
+    m_Localized: Назад
+    m_Metadata:
+      m_Items: []
+  - m_Id: 60
+    m_Localized: Объём
+    m_Metadata:
+      m_Items: []
+  - m_Id: 61
+    m_Localized: Эффекты
+    m_Metadata:
+      m_Items: []
+  - m_Id: 62
+    m_Localized: Накладывает
+    m_Metadata:
+      m_Items: []
+  - m_Id: 63
+    m_Localized: "Сила {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 64
+    m_Localized: "Коррозия {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 65
+    m_Localized: нет
+    m_Metadata:
+      m_Items: []
+  - m_Id: 66
+    m_Localized: "Теряет {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 67
+    m_Localized: Ответный удар
+    m_Metadata:
+      m_Items: []
+  - m_Id: 68
+    m_Localized: "Лечит {0} ОЗ"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 69
+    m_Localized: "Ход: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 70
+    m_Localized: "{0} собирает {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 71
+    m_Localized: "Доминанта: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72
+    m_Localized: Доминанта исчезает
+    m_Metadata:
+      m_Items: []
+  - m_Id: 73
+    m_Localized: "Растёт {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 74
+    m_Localized: "{0} разливает {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 75
+    m_Localized: "Переварил: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76
+    m_Localized: Переваривание
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77
+    m_Localized: Поглощает труп несколько ходов; вещество переносится только в конце.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 78
+    m_Localized: Слайм
+    m_Metadata:
+      m_Items: []
+  - m_Id: 79
+    m_Localized: Крыса
+    m_Metadata:
+      m_Items: []
+  - m_Id: 80
+    m_Localized: Кошка
+    m_Metadata:
+      m_Items: []
+  - m_Id: 81
+    m_Localized: Собака
+    m_Metadata:
+      m_Items: []
+  - m_Id: 82
+    m_Localized: Летучая мышь
+    m_Metadata:
+      m_Items: []
+  - m_Id: 83
+    m_Localized: Скорпион
+    m_Metadata:
+      m_Items: []
+  - m_Id: 84
+    m_Localized: " (Труп)"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 85
+    m_Localized: "Объём {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 86
+    m_Localized: "Доминанта: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 87
+    m_Localized: "Переваривает: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 88
+    m_Localized: "ОЗ {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 89
+    m_Localized: "Броня {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 90
+    m_Localized: "Объём {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 91
+    m_Localized: "Гниение {0}/{1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 92
+    m_Localized: "{0} · {1} об. · {2}/{3} ход."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 93
+    m_Localized: "Лужа: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 94
+    m_Localized: "{0} начинает переваривать: {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 95
+    m_Localized: Доминанта
+    m_Metadata:
+      m_Items: []
+  - m_Id: 96
+    m_Localized: "Забег начат в режиме {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 97
+    m_Localized: Хардкор
+    m_Metadata:
+      m_Items: []
+  - m_Id: 98
+    m_Localized: Софткор
+    m_Metadata:
+      m_Items: []
+  - m_Id: 99
+    m_Localized: Месть слайма
+    m_Metadata:
+      m_Items: []
+  - m_Id: 100
+    m_Localized: Дуэль
+    m_Metadata:
+      m_Items: []
+  - m_Id: 101
+    m_Localized: Кампания
+    m_Metadata:
+      m_Items: []
+  - m_Id: 102
+    m_Localized: Об авторе
+    m_Metadata:
+      m_Items: []
+  - m_Id: 103
+    m_Localized: Выход
+    m_Metadata:
+      m_Items: []
+  - m_Id: 104
+    m_Localized: Кампания — скоро
+    m_Metadata:
+      m_Items: []
+  - m_Id: 105
+    m_Localized: Об авторе
+    m_Metadata:
+      m_Items: []
+  - m_Id: 106
+    m_Localized: "TrejGun\nhello@trejgun.com"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 107
+    m_Localized: Настройка дуэли
+    m_Metadata:
+      m_Items: []
+  - m_Id: 108
+    m_Localized: "Противник: {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 109
+    m_Localized: "Слот {0}: {1}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 110
+    m_Localized: Начать дуэль
+    m_Metadata:
+      m_Items: []
+  - m_Id: 111
+    m_Localized: Выбери противника
+    m_Metadata:
+      m_Items: []
+  - m_Id: 112
+    m_Localized: "Слот {0}"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 113
+    m_Localized: Далее
+    m_Metadata:
+      m_Items: []
+  - m_Id: 114
+    m_Localized: "▾"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 115
+    m_Localized: "▴"
+    m_Metadata:
+      m_Items: []
+  - m_Id: 116
+    m_Localized: Дуэль началась
+    m_Metadata:
+      m_Items: []
+  - m_Id: 117
+    m_Localized: "Кампания начата в режиме {0}"
     m_Metadata:
       m_Items: []

@@ -16,8 +16,7 @@ namespace SlimesRevenge
     /// </summary>
     public abstract class InnateTrait : StatusEffect
     {
-        protected InnateTrait() : base(Forever)
-        {
-        }
+        protected InnateTrait()
+            : base(Forever) { }
     }
 }

@@ -11,12 +11,7 @@ namespace SlimesRevenge.Tests
         {
             var world = World.CreateGrass();
             var slime = new Vector2Int(1, 5);
-            var cats = new[]
-            {
-                new Vector2Int(2, 6),
-                new Vector2Int(2, 5),
-                new Vector2Int(2, 4)
-            };
+            var cats = new[] { new Vector2Int(2, 6), new Vector2Int(2, 5), new Vector2Int(2, 4) };
             var dog = new Vector2Int(3, 5);
 
             Assert.AreEqual(2, GridStep.Chebyshev(slime, dog));
@@ -26,7 +21,11 @@ namespace SlimesRevenge.Tests
             var path = GridPath.Find(world, dog, goals, blocked.Contains);
 
             Assert.IsNotNull(path);
-            Assert.GreaterOrEqual(path.Count, 3, "Direct Chebyshev jumps through the cats are not a path.");
+            Assert.GreaterOrEqual(
+                path.Count,
+                3,
+                "Direct Chebyshev jumps through the cats are not a path."
+            );
             foreach (var cat in cats)
             {
                 Assert.IsFalse(path.Contains(cat));
@@ -34,7 +33,10 @@ namespace SlimesRevenge.Tests
 
             var afterTwoSteps = path[1];
             Assert.GreaterOrEqual(GridStep.Chebyshev(afterTwoSteps, slime), 2);
-            Assert.IsFalse(GridStep.IsAdjacent(afterTwoSteps, slime), "The dog must go around the cats, not jump through them.");
+            Assert.IsFalse(
+                GridStep.IsAdjacent(afterTwoSteps, slime),
+                "The dog must go around the cats, not jump through them."
+            );
             Assert.IsTrue(GridStep.IsAdjacent(path[path.Count - 1], slime));
         }
 
@@ -49,7 +51,7 @@ namespace SlimesRevenge.Tests
                 new Vector2Int(2, 6),
                 new Vector2Int(2, 5),
                 new Vector2Int(2, 4),
-                new Vector2Int(2, 3)
+                new Vector2Int(2, 3),
             };
             var dog = new Vector2Int(3, 5);
 
@@ -86,7 +88,32 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(GridStep.IsAdjacent(path[path.Count - 1], slime));
         }
 
-        private static List<Vector2Int> Approach(World world, Vector2Int player, HashSet<Vector2Int> blocked)
+        [Test]
+        public void DuelDist5_Speed2Walk_LandsAtChebyshev3()
+        {
+            var world = new World(RunConfig.DuelWidth, RunConfig.DuelHeight, TerrainType.Grass);
+            var slime = new Vector2Int(6, 2);
+            var dog = new Vector2Int(11, 2);
+            var blocked = new HashSet<Vector2Int> { slime };
+            var goals = Approach(world, slime, blocked);
+
+            Assert.IsTrue(GridPath.TryWalk(world, dog, goals, blocked.Contains, 2, out var dest));
+            Assert.AreEqual(3, GridStep.Chebyshev(dest, slime));
+            Assert.IsTrue(GridStep.IsAdjacent(dog, dest) || GridStep.Chebyshev(dog, dest) == 2);
+
+            var path = GridPath.Find(world, dog, goals, blocked.Contains);
+            Assert.IsNotNull(path);
+            Assert.GreaterOrEqual(path.Count, 2);
+            Assert.IsTrue(GridStep.IsAdjacent(dog, path[0]));
+            Assert.IsTrue(GridStep.IsAdjacent(path[0], path[1]));
+            Assert.AreEqual(2, GridStep.Chebyshev(dog, path[1]));
+        }
+
+        private static List<Vector2Int> Approach(
+            World world,
+            Vector2Int player,
+            HashSet<Vector2Int> blocked
+        )
         {
             var cells = new List<Vector2Int>();
             for (var y = -1; y <= 1; y++)

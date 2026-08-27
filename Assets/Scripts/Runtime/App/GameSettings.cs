@@ -6,7 +6,7 @@ namespace SlimesRevenge
     public enum GameMode
     {
         Softcore,
-        Hardcore
+        Hardcore,
     }
 
     public static class GameSettings

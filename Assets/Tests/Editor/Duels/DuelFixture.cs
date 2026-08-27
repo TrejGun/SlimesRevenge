@@ -103,7 +103,8 @@ namespace SlimesRevenge.Tests.Duels
             return Spawn<Dog>(cell);
         }
 
-        protected T Spawn<T>(Vector2Int cell) where T : Creature
+        protected T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);

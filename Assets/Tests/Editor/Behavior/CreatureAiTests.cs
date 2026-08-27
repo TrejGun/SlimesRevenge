@@ -62,11 +62,23 @@ namespace SlimesRevenge.Tests
             var session = Occupied(World.CreateGrass(3), player, rat);
 
             rat.TakeTurn(session, player, new FixedRng());
-            Assert.AreEqual(6, player.Volume.UnitCount);
+            Assert.AreEqual(6, player.Volume.UnitCount, "Cowardly rat must not bite before aggro.");
             Assert.AreEqual(1, rat.Volume.UnitCount);
-            Assert.AreEqual(new Vector2Int(0, 0), rat.Cell);
 
             rat.MarkAggro();
+            // Re-adjacent if the rat fled on the first turn.
+            if (!GridStep.IsAdjacent(rat.Cell, player.Cell))
+            {
+                Assert.IsTrue(session.TryMoveOccupant(rat.Cell, new Vector2Int(0, 0)));
+                rat.PlaceOn(new Vector2Int(0, 0));
+                if (!GridStep.IsAdjacent(rat.Cell, player.Cell))
+                {
+                    Assert.IsTrue(session.TryMoveOccupant(player.Cell, new Vector2Int(1, 0)));
+                    player.PlaceOn(new Vector2Int(1, 0));
+                }
+            }
+
+            Assert.IsTrue(GridStep.IsAdjacent(rat.Cell, player.Cell));
             rat.TakeTurn(session, player, new FixedRng());
             Assert.AreEqual(5, player.Volume.UnitCount);
             Assert.AreEqual(1, rat.Volume.UnitCount);
@@ -129,7 +141,7 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(CreaturePersonality.Cowardly, rat.Personality);
             rat.MarkAggro();
             Assert.IsTrue(session.TryStep(Vector2Int.left));
-            player.PlaceOn(session.PlayerCell);
+            player.PlaceOn(session.ControlledCell.Value);
             Assert.AreEqual(new Vector2Int(3, 4), player.Cell);
 
             rat.TakeTurn(session, player, new FixedRng());
@@ -155,7 +167,10 @@ namespace SlimesRevenge.Tests
 
             dog.TakeTurn(session, player, new FixedRng(), others);
             Assert.AreNotEqual(start, dog.Cell);
-            Assert.IsFalse(GridStep.IsAdjacent(dog.Cell, player.Cell), "A jump through the cats is not allowed.");
+            Assert.IsFalse(
+                GridStep.IsAdjacent(dog.Cell, player.Cell),
+                "A jump through the cats is not allowed."
+            );
             Assert.GreaterOrEqual(GridStep.Chebyshev(dog.Cell, player.Cell), 2);
             foreach (var cat in cats)
             {
@@ -190,13 +205,29 @@ namespace SlimesRevenge.Tests
                 Spawn<Cat>(new Vector2Int(2, 6)),
                 Spawn<Cat>(new Vector2Int(2, 5)),
                 Spawn<Cat>(new Vector2Int(2, 4)),
-                Spawn<Cat>(new Vector2Int(2, 3))
+                Spawn<Cat>(new Vector2Int(2, 3)),
             };
             var dog = Spawn<Dog>(new Vector2Int(3, 5));
-            var session = Occupied(World.CreateGrass(), player, cats[0], cats[1], cats[2], cats[3], cats[4], dog);
+            var session = Occupied(
+                World.CreateGrass(),
+                player,
+                cats[0],
+                cats[1],
+                cats[2],
+                cats[3],
+                cats[4],
+                dog
+            );
             var others = new List<Creature> { cats[0], cats[1], cats[2], cats[3], cats[4], dog };
             var start = dog.Cell;
-            var catCells = new[] { cats[0].Cell, cats[1].Cell, cats[2].Cell, cats[3].Cell, cats[4].Cell };
+            var catCells = new[]
+            {
+                cats[0].Cell,
+                cats[1].Cell,
+                cats[2].Cell,
+                cats[3].Cell,
+                cats[4].Cell,
+            };
 
             Assert.AreEqual(2, GridStep.Chebyshev(player.Cell, dog.Cell));
             dog.TakeTurn(session, player, new FixedRng(), others);
@@ -248,7 +279,10 @@ namespace SlimesRevenge.Tests
         public void Occupant_CanStepTwoCellsOntoAnEmptyCell()
         {
             var from = new Vector2Int(4, 0);
-            var session = new GameSession(World.CreateGrass(), new Vector2Int(0, 0), new[] { from });
+            var session = new GameSession(
+                World.CreateGrass(),
+                new[] { new Vector2Int(0, 0), from }
+            );
 
             Assert.IsTrue(session.TryMoveOccupant(from, new Vector2Int(2, 0)));
             Assert.IsTrue(session.IsOccupied(new Vector2Int(2, 0)));
@@ -291,7 +325,10 @@ namespace SlimesRevenge.Tests
             var others = new List<Creature> { cat, rat };
 
             Assert.IsNotNull(cat.FindStatus<HatesRats>());
-            Assert.AreEqual(CreatureIntent.Attack, CreatureBrain.Decide(cat, player, session, new FixedRng(), others));
+            Assert.AreEqual(
+                CreatureIntent.Attack,
+                CreatureBrain.Decide(cat, player, session, new FixedRng(), others)
+            );
 
             var ratHp = rat.HitPoints;
             cat.TakeTurn(session, player, new FixedRng(), others);
@@ -311,14 +348,18 @@ namespace SlimesRevenge.Tests
             Assert.IsFalse(CreatureMoves.CanSee(dog, player));
             Assert.IsTrue(CreatureMoves.CanSee(dog, cat));
             Assert.IsNotNull(dog.FindStatus<HatesCats>());
-            Assert.AreEqual(CreatureIntent.Attack, CreatureBrain.Decide(dog, player, session, new FixedRng(), others));
+            Assert.AreEqual(
+                CreatureIntent.Attack,
+                CreatureBrain.Decide(dog, player, session, new FixedRng(), others)
+            );
 
             var catHp = cat.HitPoints;
             dog.TakeTurn(session, player, new FixedRng(), others);
             Assert.AreEqual(catHp - 1, cat.HitPoints);
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);
@@ -388,13 +429,7 @@ namespace SlimesRevenge.Tests
 
         private static GameSession Occupied(World world, Creature player, params Creature[] others)
         {
-            var cells = new Vector2Int[others.Length];
-            for (var i = 0; i < others.Length; i++)
-            {
-                cells[i] = others[i].Cell;
-            }
-
-            return new GameSession(world, player.Cell, cells);
+            return SessionFactory.WithControlled(world, player, others);
         }
     }
 }

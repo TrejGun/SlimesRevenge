@@ -4,7 +4,8 @@ namespace SlimesRevenge
     {
         private readonly int corrosion;
 
-        public Corroding(int duration = OverTime.DefaultDuration, int corrosion = 1) : base(duration)
+        public Corroding(int duration = OverTime.DefaultDuration, int corrosion = 1)
+            : base(duration)
         {
             this.corrosion = corrosion < 0 ? 0 : corrosion;
         }
@@ -15,6 +16,8 @@ namespace SlimesRevenge
         public int Corrosion => corrosion;
 
         public override string Label => I18n.Get(TextKey.StatusCorroding);
+
+        public override string Description => I18n.Get(TextKey.StatusCorrodingDesc);
 
         /// <summary>Incoming <see cref="Wet"/> washes acid off without applying wet.</summary>
         public override bool CancelsWith(StatusEffect incoming) => incoming is Wet;
@@ -28,11 +31,13 @@ namespace SlimesRevenge
 
             if (creature.Armor > 0)
             {
-                creature.StripArmor(Corrosion);
+                var stripped = creature.StripArmor(Corrosion);
+                ActionLog.DetailDamage(creature, stripped, applied: 0);
                 return;
             }
 
-            creature.Damage(PulsePowerFor(creature), blockedByArmor: false);
+            creature.Damage(PulsePowerFor(creature), out _, out var applied, blockedByArmor: false);
+            ActionLog.DetailDamage(creature, armorStripped: 0, applied);
         }
     }
 }

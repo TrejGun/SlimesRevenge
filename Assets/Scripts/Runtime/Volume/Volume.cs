@@ -12,6 +12,12 @@ namespace SlimesRevenge
 
         public int UnitCount => units.Count;
 
+        /// <summary>
+        /// Spending one unit leaves the slime alive. Volume is life for the slime, so the
+        /// last unit cannot be spent on attack or mess.
+        /// </summary>
+        public bool CanSpend => units.Count > 1;
+
         public IReadOnlyList<VolumeUnit> Units => units;
 
         public void Add(Substance substance)
@@ -33,7 +39,8 @@ namespace SlimesRevenge
             }
         }
 
-        public bool TryReplace<TFrom>(Substance into) where TFrom : Substance
+        public bool TryReplace<TFrom>(Substance into)
+            where TFrom : Substance
         {
             if (into == null)
             {
@@ -77,7 +84,8 @@ namespace SlimesRevenge
         /// <see cref="TryRemove"/>, prefers the most recently added match even when
         /// something else sits on top.
         /// </summary>
-        public bool TryRemoveLast<T>() where T : Substance
+        public bool TryRemoveLast<T>()
+            where T : Substance
         {
             for (var i = units.Count - 1; i >= 0; i--)
             {
@@ -129,7 +137,8 @@ namespace SlimesRevenge
             return true;
         }
 
-        public int CountOf<T>() where T : Substance
+        public int CountOf<T>()
+            where T : Substance
         {
             var count = 0;
             foreach (var unit in units)
@@ -235,6 +244,12 @@ namespace SlimesRevenge
         public void Clear()
         {
             units.Clear();
+        }
+
+        /// <summary>Remove half the units (tip-first), rounding down the removed count.</summary>
+        public void Halve()
+        {
+            Damage(units.Count / 2);
         }
 
         /// <summary>Null-safe wrapper around <see cref="Substance.Clone"/>.</summary>

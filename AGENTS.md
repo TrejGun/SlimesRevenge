@@ -1,0 +1,160 @@
+# AGENTS.md
+
+Guidance for AI agents working in **Slime's Revenge** (Unity mobile game).
+
+## Repository layout
+
+```
+Assets/
+  Scripts/
+    Runtime/              # Gameplay (one asmdef: SlimesRevenge.Runtime)
+      App/                # Menu, action log, popups, cards, run config
+      Behavior/           # Unity Behavior graphs + Decide / Hunt / Moves
+      Creatures/          # Slime, Rat, Cat, Dog, Bat, Scorpion, catalogs
+      Localization/       # I18n + TextKey
+      Status/             # StatusEffect hierarchy (innate / body / timed)
+      Turns/              # GameSession, TurnManager, Combat, cell menu
+      Volume/             # Substances, Volume, dominance, floor puddles
+      World/              # Grid, terrain, GridPath (A* Pathfinding Project), Floor
+    Editor/               # Build helpers (Android / iOS)
+  Tests/Editor/           # EditMode tests, mirrored by feature
+  AstarPathfindingProject/# Aron Granberg A* Pathfinding Project (Free)
+  Scenes/                 # Main (title), Game
+  Localization/Resources/ # en / ru string tables
+  Resources/              # Runtime-loaded sprites (animals, status icons)
+docs/                     # Design / architecture notes (human + agent)
+scripts/                  # Local build / asset helpers
+.github/workflows/        # GameCI EditMode tests + mobile builds
+.cursor/rules/            # Cursor agent rules (see below)
+```
+
+Domain docs (read before changing the matching feature):
+
+| Topic | Doc |
+| --- | --- |
+| Dependency inversion (statuses + world↛player) | [docs/architecture/dependency-inversion.md](docs/architecture/dependency-inversion.md) |
+| Mob AI (personality vs fear/hate) | [docs/behavior.md](docs/behavior.md) |
+| Status effects | [docs/status-effects.md](docs/status-effects.md) |
+| Strike vs puddle | [docs/strike-vs-puddle.md](docs/strike-vs-puddle.md) |
+| Slime volume dominance | [docs/slime-dominance.md](docs/slime-dominance.md) |
+| Action log | [docs/architecture/action-log.md](docs/architecture/action-log.md) |
+| Popup cards | [docs/architecture/popup-cards.md](docs/architecture/popup-cards.md) |
+
+## Cursor rules
+
+Project rules live in [`.cursor/rules/`](.cursor/rules/). Open or edit matching files so they attach by glob:
+
+| Rule | Intent |
+| --- | --- |
+| [`.cursor/rules/behavior-astar-architecture.mdc`](.cursor/rules/behavior-astar-architecture.mdc) | Mob turn AI: **Unity Behavior** chooses *what*, **A* Pathfinding Project** chooses *where*. No DIY chase heuristics. |
+| [`.cursor/rules/dependency-inversion.mdc`](.cursor/rules/dependency-inversion.mdc) | Statuses apply via hooks; board/occupied does not require a controlled player. |
+
+## Board vs controlled
+
+- **Board** = `World` + unified `GameSession.occupied` (every living body).
+- **Controlled** = optional input (`TurnManager.Controlled` / `ControlledCell`). Hunt sims use board-only + `TakeTurn(..., player: null)`.
+- Details: [docs/architecture/dependency-inversion.md](docs/architecture/dependency-inversion.md) (World ↛ player).
+
+## Engineering discipline
+
+- Prefer the smallest change that matches existing patterns in `Assets/Scripts/Runtime`.
+- Do not invent parallel AI brains, custom A* grids, or combat `if (status is Poisonous)` switches when hooks already exist.
+- Keep personality → slime only; fear/hate → mob↔mob only. There is **no** `FearsSlimes` status.
+- Do not pad maps or hide a fake slime to “disable” Aggressive during mob↔mob hunts — omit the player instead.
+- Address the user as **Oleg** when chatting in this project (user preference).
+
+## Unity version
+
+**Unity 6000.5.9f1**. Bundle id: `com.trejgun.slimesrevenge`.
+
+Default local editor path on this machine:
+
+```text
+/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity
+```
+
+Override with `UNITY_EDITOR` for builds (`scripts/build.sh`).
+
+## Setup
+
+1. Open the project in Unity Hub with editor **6000.5.9f1**.
+2. Wait for script compile (packages: Unity Behavior, A* Pathfinding Project under `Assets/`).
+3. Activate a Unity license for batchmode / CI.
+4. (Optional) C# formatting — needs a local **dotnet** SDK **8+** (CSharpier 1.x):
+
+```bash
+export PATH="$HOME/.dotnet:$PATH"   # if dotnet is only under ~/.dotnet
+dotnet tool restore
+./scripts/format.sh          # format Assets/Scripts + Assets/Tests
+./scripts/format.sh check    # CI-style check, no writes
+```
+
+Enable the pre-commit hook once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Config: [`.csharpierrc.json`](.csharpierrc.json), ignore: [`.csharpierignore`](.csharpierignore). Vendor tree `Assets/AstarPathfindingProject/` is excluded.
+
+## Testing (EditMode)
+
+Tests are NUnit EditMode under `Assets/Tests/Editor`. CI runs them via GameCI (`.github/workflows/test.yml`).
+
+### Full EditMode suite (local batchmode)
+
+```bash
+UNITY="/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity"
+"$UNITY" -batchmode -nographics \
+  -projectPath "$(pwd)" \
+  -runTests -testPlatform EditMode \
+  -testResults "$(pwd)/Logs/editmode-results.xml" \
+  -logFile "$(pwd)/Logs/editmode.log"
+```
+
+### Focused filter
+
+```bash
+UNITY="/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity"
+"$UNITY" -batchmode -nographics \
+  -projectPath "$(pwd)" \
+  -runTests -testPlatform EditMode \
+  -testFilter "SlimesRevenge.Tests.BehaviorRulesTests" \
+  -testResults "$(pwd)/Logs/focused-results.xml" \
+  -logFile "$(pwd)/Logs/focused.log"
+```
+
+### Test output (agents)
+
+- Prefer writing Unity logs under `Logs/` with `-logFile` / `-testResults`.
+- Do **not** use `head` / `tail` to truncate the only evidence of a run; use `tee` if you need a copy, then summarize from the XML/log file.
+- Never claim green without the results XML (or full log) for that run.
+
+Useful focused suites while touching AI / pathfinding:
+
+| Filter prefix | Covers |
+| --- | --- |
+| `SlimesRevenge.Tests.BehaviorRulesTests` | Duel approach / personality contract |
+| `SlimesRevenge.Tests.BehaviorGraphBindOwnerProofTests` | Behavior bind / Actor |
+| `SlimesRevenge.Tests.DogCatHuntSimulationTests` | Corridor / maze / DoT doors |
+| `SlimesRevenge.Tests.GridPathTests` | A* grid paths |
+| `SlimesRevenge.Tests.PathfindingPursuitTests` | Pursuit memory, puddle penalties |
+
+## Builds
+
+```bash
+./scripts/build.sh Android   # -> Build/Android/SlimesRevenge.apk
+./scripts/build.sh iOS       # -> Build/iOS (Xcode project)
+```
+
+See [README.md](README.md) for CI secrets and GameCI workflows.
+
+## Review checklist (AI / combat / status)
+
+Before finishing a change in Behavior, World pathfinding, Combat, or Status:
+
+1. Does Decide still go through Unity Behavior graphs (`CreaturePolicyGraphs` / `CreatureBrain`)?
+2. Does movement still go through `GridPath` → A* Pathfinding Project (no ring-scan “best toward” chase)?
+3. Did Combat / CreatureMoves gain a new `if (status is X)`? If yes, move the behavior onto `StatusEffect` hooks instead.
+4. Are fear/hate still status-driven (`IsPrey` / `IsPredator`) rather than hardcoded in Combat?
+5. Did you run the focused EditMode filter for the area you touched?

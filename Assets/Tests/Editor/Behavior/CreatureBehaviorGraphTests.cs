@@ -5,8 +5,8 @@ using UnityEngine;
 namespace SlimesRevenge.Tests
 {
     /// <summary>
-    /// Behavior-graph cases via <see cref="CreatureBrain"/> (Unity Behavior personalities)
-    /// plus <see cref="CreatureHunt"/> predator/prey redirects.
+    /// Unity Behavior personality graphs via <see cref="CreatureBrain"/> plus
+    /// <see cref="CreatureHunt"/> predator/prey redirects.
     /// </summary>
     public class CreatureBehaviorGraphTests
     {
@@ -87,12 +87,12 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Rat_StartsWithFearsSlimesAndFearsCats()
+        public void Rat_StartsWithFearsCats_NoFearsSlimesStatus()
         {
             var rat = Spawn<Rat>(Vector2Int.zero);
-            Assert.IsNotNull(rat.FindStatus<FearsSlimes>());
             Assert.IsNotNull(rat.FindStatus<FearsCats>());
             Assert.IsNull(rat.FindStatus<FearsDogs>());
+            Assert.AreEqual(CreaturePersonality.Cowardly, rat.Personality);
         }
 
         [Test]
@@ -134,18 +134,20 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Rat_FearsSlimes_FleesWhenSlimeInVision()
+        public void Rat_Cowardly_FleesSlimeViaPersonality_NotStatus()
         {
             var player = Spawn<Slime>(new Vector2Int(4, 0));
             var rat = Spawn<Rat>(new Vector2Int(4, 4));
             var session = Occupied(World.CreateGrass(), player, rat);
             var others = Others(rat);
 
-            Assert.IsNotNull(rat.FindStatus<FearsSlimes>());
             CreatureTurnContext.Push(session, player, new FixedRng(), others);
             try
             {
-                Assert.AreEqual(player, CreatureHunt.FindPredator(rat, others));
+                Assert.IsNull(
+                    CreatureHunt.FindPredator(rat, others),
+                    "Slime is not a hunt-predator; flee is Cowardly."
+                );
             }
             finally
             {
@@ -401,12 +403,15 @@ namespace SlimesRevenge.Tests
         {
             var player = Spawn<Slime>(new Vector2Int(0, 0));
             var cat = Spawn<Cat>(new Vector2Int(8, 5));
-            var dog = Spawn<Dog>(new Vector2Int(8, 8));
+            // Keep dog out of the cat's vision so FearsDogs does not force Flee;
+            // this test only asserts bat/scorpion are not prey.
+            var dog = Spawn<Dog>(new Vector2Int(0, 8));
             var bat = Spawn<Bat>(new Vector2Int(8, 6));
             var scorpion = Spawn<Scorpion>(new Vector2Int(8, 7));
             var session = Occupied(World.CreateGrass(), player, cat, dog, bat, scorpion);
             var others = Others(cat, dog, bat, scorpion);
 
+            Assert.IsFalse(CreatureMoves.CanSee(cat, dog));
             Assert.AreEqual(CreatureIntent.Idle, Decide(cat, player, session, others: others));
             Assert.AreEqual(CreatureIntent.Idle, Decide(dog, player, session, others: others));
             Assert.IsNull(CreatureHunt.FindPrey(cat, others));
@@ -418,9 +423,16 @@ namespace SlimesRevenge.Tests
             Creature player,
             GameSession session,
             bool wander = false,
-            IReadOnlyList<Creature> others = null)
+            IReadOnlyList<Creature> others = null
+        )
         {
-            return CreatureBrain.Decide(self, player, session, new FixedRng(wander: wander), others);
+            return CreatureBrain.Decide(
+                self,
+                player,
+                session,
+                new FixedRng(wander: wander),
+                others
+            );
         }
 
         private static List<Creature> Others(params Creature[] creatures)
@@ -428,7 +440,8 @@ namespace SlimesRevenge.Tests
             return new List<Creature>(creatures);
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);
@@ -494,13 +507,7 @@ namespace SlimesRevenge.Tests
 
         private static GameSession Occupied(World world, Creature player, params Creature[] others)
         {
-            var cells = new Vector2Int[others.Length];
-            for (var i = 0; i < others.Length; i++)
-            {
-                cells[i] = others[i].Cell;
-            }
-
-            return new GameSession(world, player.Cell, cells);
+            return SessionFactory.WithControlled(world, player, others);
         }
     }
 }

@@ -9,7 +9,7 @@ namespace SlimesRevenge
         Poison,
         Acid,
         Blood,
-        Lava
+        Lava,
     }
 
     public static class SlimeAppearance

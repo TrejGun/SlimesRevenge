@@ -5,17 +5,24 @@ namespace SlimesRevenge
 {
     public abstract class Creature : MonoBehaviour
     {
-        [SerializeField] private Volume volume = new Volume();
-        [SerializeField] private int visionRange = 5;
-        [SerializeField] private int speed = 1;
-        [SerializeField] private int maxHitPoints = 1;
+        [SerializeField]
+        private Volume volume = new Volume();
+
+        [SerializeField]
+        private int visionRange = 5;
+
+        [SerializeField]
+        private int speed = 1;
+
+        [SerializeField]
+        private int maxHitPoints = 1;
         private readonly StatusQueue statusQueue = new StatusQueue();
-        private Digestion digestion;
         private readonly VolumeDominance volumeDominance = new VolumeDominance();
 
         public Volume Volume => volume;
 
-        public Digestion Digestion => digestion ??= new Digestion();
+        /// <summary>True while a <see cref="Digesting"/> meal is in the status queue.</summary>
+        public bool IsDigesting => FindStatus<Digesting>() != null;
 
         public int VisionRange => visionRange;
 
@@ -72,9 +79,10 @@ namespace SlimesRevenge
         /// Slime lives only while its volume stack has matter. Everyone else: HP &gt; 0.
         /// Corpses stay in the scene but are not alive.
         /// </summary>
-        public bool IsAlive => gameObject.activeInHierarchy && !IsCorpse && (this is Slime
-            ? Volume.UnitCount > 0
-            : HitPoints > 0);
+        public bool IsAlive =>
+            gameObject.activeInHierarchy
+            && !IsCorpse
+            && (this is Slime ? Volume.UnitCount > 0 : HitPoints > 0);
 
         /// <summary>Dead body still present for devour / future revive; not an actor.</summary>
         public bool IsCorpse { get; private set; }
@@ -102,15 +110,17 @@ namespace SlimesRevenge
             Armor = Mathf.Max(0, value);
         }
 
-        /// <summary>Strip armor by <paramref name="amount"/> (not below 0).</summary>
-        public void StripArmor(int amount = 1)
+        /// <summary>Strip armor by <paramref name="amount"/> (not below 0). Returns units actually stripped.</summary>
+        public int StripArmor(int amount = 1)
         {
             if (amount <= 0 || Armor <= 0)
             {
-                return;
+                return 0;
             }
 
+            var before = Armor;
             Armor = Mathf.Max(0, Armor - amount);
+            return before - Armor;
         }
 
         public void MarkAggro()
@@ -159,29 +169,117 @@ namespace SlimesRevenge
             FleeCell = null;
         }
 
-        public T FindStatus<T>() where T : StatusEffect
+        public T FindStatus<T>()
+            where T : StatusEffect
         {
             return statusQueue.Find<T>(volumeDominance);
         }
 
-        public bool HasStatus<T>() where T : StatusEffect
+        public bool HasStatus<T>()
+            where T : StatusEffect
         {
             return FindStatus<T>() != null;
         }
 
-        public int CountStatus<T>() where T : StatusEffect
+        public int CountStatus<T>()
+            where T : StatusEffect
         {
             return statusQueue.CountOf<T>(volumeDominance);
         }
 
+        /// <summary>
+        /// Snapshot reactions that must fire after a surviving hit even if dominance clears mid-strike.
+        /// </summary>
+        public void CaptureSurvivedHitReactions(System.Collections.Generic.IList<StatusEffect> sink)
+        {
+            volumeDominance.CaptureSurvivedHitReactions(sink);
+        }
+
+        public void DispatchSurvivedHitReactions(
+            System.Collections.Generic.IReadOnlyList<StatusEffect> reactions,
+            Creature attacker
+        )
+        {
+            if (reactions == null)
+            {
+                return;
+            }
+
+            for (var i = 0; i < reactions.Count; i++)
+            {
+                reactions[i]?.OnOwnerSurvivedHit(this, attacker);
+            }
+        }
+
+        public void NotifyDealtMeleeHit(Creature target)
+        {
+            var statuses = statusQueue.AsReadOnly;
+            for (var i = 0; i < statuses.Count; i++)
+            {
+                statuses[i].OnOwnerDealtMeleeHit(this, target);
+            }
+        }
+
+        public void NotifyStruckVolumeTip(Substance tip)
+        {
+            if (tip == null)
+            {
+                return;
+            }
+
+            var statuses = statusQueue.AsReadOnly;
+            for (var i = 0; i < statuses.Count; i++)
+            {
+                statuses[i].OnOwnerStruckVolumeTip(this, tip);
+            }
+        }
+
+        /// <summary>
+        /// Substance residue landed on this creature (puddle / retort / strike Apply).
+        /// </summary>
+        public void NotifyReceivedSubstance(Substance substance)
+        {
+            if (substance == null)
+            {
+                return;
+            }
+
+            var statuses = statusQueue.AsReadOnly;
+            for (var i = 0; i < statuses.Count; i++)
+            {
+                statuses[i].OnOwnerReceivedSubstance(this, substance);
+            }
+        }
+
+        /// <summary>
+        /// Let statuses scale incoming harm (e.g. oil <see cref="Flammable"/>). Includes
+        /// dominance passives that are not queued.
+        /// </summary>
+        public int ModifyIncomingHarm(int amount)
+        {
+            if (amount <= 0)
+            {
+                return amount;
+            }
+
+            var statuses = statusQueue.AsReadOnly;
+            for (var i = 0; i < statuses.Count; i++)
+            {
+                amount = statuses[i].ModifyIncomingHarm(this, amount);
+            }
+
+            amount = volumeDominance.ModifyIncomingHarm(this, amount, statuses);
+            return amount;
+        }
+
         public virtual void Damage(int amount)
         {
-            Damage(amount, out _, blockedByArmor: true);
+            Damage(amount, out _, out _, blockedByArmor: true);
         }
 
         public virtual void Damage(int amount, bool blockedByArmor)
         {
-            Damage(amount, out _, blockedByArmor);
+            Damage(amount, out _, out _, blockedByArmor);
         }
 
         /// <summary>
@@ -190,17 +288,29 @@ namespace SlimesRevenge
         /// </summary>
         public virtual void Damage(int amount, out Substance tipStruck)
         {
-            Damage(amount, out tipStruck, blockedByArmor: true);
+            Damage(amount, out tipStruck, out _, blockedByArmor: true);
         }
 
         /// <summary>
         /// Apply damage. Slime: pops volume tip (newest first). Others: optional armor DR, then HP.
         /// <paramref name="tipStruck"/> is the first volume unit knocked off a slime (else null).
+        /// <paramref name="applied"/> is volume units lost (slime) or HP lost (others).
         /// Pass <paramref name="blockedByArmor"/> false for status pulses that ignore DR.
         /// </summary>
         public virtual void Damage(int amount, out Substance tipStruck, bool blockedByArmor)
         {
+            Damage(amount, out tipStruck, out _, blockedByArmor);
+        }
+
+        public virtual void Damage(
+            int amount,
+            out Substance tipStruck,
+            out int applied,
+            bool blockedByArmor
+        )
+        {
             tipStruck = null;
+            applied = 0;
             if (amount <= 0 || !IsAlive)
             {
                 return;
@@ -209,7 +319,7 @@ namespace SlimesRevenge
             if (this is Slime)
             {
                 var popped = new List<Substance>();
-                Volume.Damage(amount, popped);
+                applied = Volume.Damage(amount, popped);
                 if (popped.Count > 0)
                 {
                     tipStruck = popped[0];
@@ -233,27 +343,48 @@ namespace SlimesRevenge
                 }
             }
 
+            var before = HitPoints;
             HitPoints = Mathf.Max(0, HitPoints - amount);
+            applied = before - HitPoints;
         }
 
-        public void Heal(int amount)
+        public int Heal(int amount)
         {
             if (amount <= 0 || !IsAlive)
             {
-                return;
+                return 0;
             }
 
+            var before = HitPoints;
             HitPoints = Mathf.Min(maxHitPoints, HitPoints + amount);
+            return HitPoints - before;
         }
 
-        public void AddStatus(StatusEffect effect)
+        public bool AddStatus(StatusEffect effect)
         {
-            statusQueue.Add(effect, volumeDominance);
+            if (!statusQueue.Add(effect, volumeDominance))
+            {
+                return false;
+            }
+
+            if (ActionLog.HasOpenGroup)
+            {
+                ActionLog.DetailGains(Kind, effect);
+            }
+
+            return true;
         }
 
-        public bool ClearStatus<T>() where T : StatusEffect
+        public bool ClearStatus<T>()
+            where T : StatusEffect
         {
-            return statusQueue.Clear<T>();
+            return statusQueue.Clear<T>(this);
+        }
+
+        /// <summary>Drop every queued status (notifies each via <see cref="StatusEffect.OnRemoved"/>).</summary>
+        public void ClearAllStatuses()
+        {
+            statusQueue.ClearAll(this);
         }
 
         /// <summary>Idempotent innate seeding; override in concrete animals.</summary>
@@ -262,11 +393,10 @@ namespace SlimesRevenge
             SeedInnateTraits();
         }
 
-        protected virtual void SeedInnateTraits()
-        {
-        }
+        protected virtual void SeedInnateTraits() { }
 
-        protected void EnsureInnate<T>() where T : InnateTrait, new()
+        protected void EnsureInnate<T>()
+            where T : InnateTrait, new()
         {
             if (FindStatus<T>() == null)
             {
@@ -303,13 +433,26 @@ namespace SlimesRevenge
             GameSession session,
             Creature player,
             IRng rng,
-            System.Collections.Generic.IReadOnlyList<Creature> others = null)
+            System.Collections.Generic.IReadOnlyList<Creature> others = null
+        )
         {
             CreatureTurnContext.Push(session, player, rng, others);
             try
             {
                 var intent = CreatureHunt.Redirect(this, CreatureBrain.Decide(this), others);
                 var target = CreatureTurnContext.FocusTarget ?? player;
+                if (
+                    target == null
+                    && (
+                        intent == CreatureIntent.Chase
+                        || intent == CreatureIntent.Attack
+                        || intent == CreatureIntent.Flee
+                    )
+                )
+                {
+                    intent = CreatureIntent.Idle;
+                }
+
                 CreatureMoves.Perform(intent, this, target, session, rng);
                 CreatureHunt.AfterAct(this, intent, target, others);
             }

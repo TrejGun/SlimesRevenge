@@ -17,8 +17,10 @@ namespace SlimesRevenge
         private static BehaviorGraph cowardly;
         private static BehaviorGraph passive;
 
-        private static Type BranchType => typeof(BehaviorGraph).Assembly.GetType("Unity.Behavior.BranchingConditionComposite");
-        private static Type SequenceType => typeof(BehaviorGraph).Assembly.GetType("Unity.Behavior.SequenceComposite");
+        private static Type BranchType =>
+            typeof(BehaviorGraph).Assembly.GetType("Unity.Behavior.BranchingConditionComposite");
+        private static Type SequenceType =>
+            typeof(BehaviorGraph).Assembly.GetType("Unity.Behavior.SequenceComposite");
 
         public static BehaviorGraph For(CreaturePersonality personality)
         {
@@ -34,8 +36,12 @@ namespace SlimesRevenge
         public static void BindOwner(BehaviorGraph graph, GameObject owner)
         {
             var module = RootModule(graph);
-            module?.GetType()
-                .GetProperty("GameObject", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            module
+                ?.GetType()
+                .GetProperty(
+                    "GameObject",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                )
                 ?.SetValue(module, owner);
         }
 
@@ -59,12 +65,14 @@ namespace SlimesRevenge
             }
         }
 
-        private static Unity.Behavior.Action Select<T>() where T : Unity.Behavior.Action
+        private static Unity.Behavior.Action Select<T>()
+            where T : Unity.Behavior.Action
         {
             return (Unity.Behavior.Action)Activator.CreateInstance(typeof(T));
         }
 
-        private static Condition Cond<T>() where T : Condition
+        private static Condition Cond<T>()
+            where T : Condition
         {
             return (Condition)Activator.CreateInstance(typeof(T));
         }
@@ -76,12 +84,14 @@ namespace SlimesRevenge
                 requireAll: false,
                 new Condition[] { Cond<IsAggroedCondition>(), Cond<PlayerInVisionCondition>() },
                 Select<ChaseAction>(),
-                Select<WanderOrIdleAction>());
+                Select<WanderOrIdleAction>()
+            );
             return Branch(
                 requireAll: true,
                 new Condition[] { Cond<PlayerAdjacentCondition>() },
                 Select<AttackAction>(),
-                chaseOrWander);
+                chaseOrWander
+            );
         }
 
         private static Node BuildCowardlyRoot()
@@ -91,13 +101,15 @@ namespace SlimesRevenge
                 requireAll: true,
                 new Condition[] { Cond<PlayerInVisionCondition>() },
                 Select<FleeAction>(),
-                Select<WanderOrIdleAction>());
+                Select<WanderOrIdleAction>()
+            );
             var disengage = Sequence(Select<ClearAggroAction>(), afterDisengage);
             return Branch(
                 requireAll: true,
                 new Condition[] { Cond<IsAggroedCondition>(), Cond<PlayerAdjacentCondition>() },
                 Select<AttackAction>(),
-                disengage);
+                disengage
+            );
         }
 
         private static Node BuildPassiveRoot()
@@ -107,10 +119,16 @@ namespace SlimesRevenge
                 requireAll: true,
                 new Condition[] { Cond<IsAggroedCondition>() },
                 BuildAggressiveRoot(),
-                Select<WanderOrIdleAction>());
+                Select<WanderOrIdleAction>()
+            );
         }
 
-        private static Node Branch(bool requireAll, Condition[] conditions, Node ifTrue, Node ifFalse)
+        private static Node Branch(
+            bool requireAll,
+            Condition[] conditions,
+            Node ifTrue,
+            Node ifFalse
+        )
         {
             var branch = Activator.CreateInstance(BranchType, nonPublic: true);
             BranchType.GetProperty("RequiresAllConditions")?.SetValue(branch, requireAll);
@@ -148,19 +166,29 @@ namespace SlimesRevenge
         {
             var graph = ScriptableObject.CreateInstance<BehaviorGraph>();
             graph.hideFlags = HideFlags.HideAndDontSave;
-            var moduleType = typeof(BehaviorGraph).Assembly.GetType("Unity.Behavior.BehaviorGraphModule");
+            var moduleType = typeof(BehaviorGraph).Assembly.GetType(
+                "Unity.Behavior.BehaviorGraphModule"
+            );
             var module = Activator.CreateInstance(moduleType, nonPublic: true);
-            moduleType.GetField("Root", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+            moduleType
+                .GetField(
+                    "Root",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                )
                 ?.SetValue(module, root);
 
             var graphsField = typeof(BehaviorGraph).GetField(
                 "Graphs",
-                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+            );
             var list = graphsField.GetValue(graph);
             list.GetType().GetMethod("Add")?.Invoke(list, new[] { module });
 
             moduleType
-                .GetMethod("InitializeNodes", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                .GetMethod(
+                    "InitializeNodes",
+                    BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic
+                )
                 ?.Invoke(module, null);
 
             WireConditionGraphs(root, module);
@@ -176,12 +204,14 @@ namespace SlimesRevenge
 
             if (BranchType.IsInstanceOfType(node))
             {
-                var conditions = BranchType.GetProperty("Conditions")?.GetValue(node) as IList<Condition>;
+                var conditions =
+                    BranchType.GetProperty("Conditions")?.GetValue(node) as IList<Condition>;
                 if (conditions != null)
                 {
                     var graphField = typeof(Condition).GetField(
                         "Graph",
-                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                        BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+                    );
                     foreach (var condition in conditions)
                     {
                         graphField?.SetValue(condition, module);
@@ -205,7 +235,8 @@ namespace SlimesRevenge
         {
             var graphsField = typeof(BehaviorGraph).GetField(
                 "Graphs",
-                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+                BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public
+            );
             var list = graphsField?.GetValue(graph) as System.Collections.IList;
             return list is { Count: > 0 } ? list[0] : null;
         }

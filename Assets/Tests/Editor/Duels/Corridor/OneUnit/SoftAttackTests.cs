@@ -17,7 +17,11 @@ namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
         }
 
         [TestCaseSource(nameof(Cases))]
-        public void SoftAttack_SlimeDiesBeastLives(Substance substance, System.Type beastType, int expectedHitPoints)
+        public void SoftAttack_SlimeDiesBeastLives(
+            Substance substance,
+            System.Type beastType,
+            int expectedHitPoints
+        )
         {
             var duel = StartCorridorDuel(beastType, substance);
             Assert.IsTrue(duel.Turns.TryAttack(CorridorFoeCell, Clone(substance)));
@@ -28,8 +32,9 @@ namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
 
         private static TestCaseData Case(Substance substance, System.Type beastType, int hits)
         {
-            return new TestCaseData(substance, beastType, hits)
-                .SetName($"{substance.GetType().Name}_{beastType.Name}");
+            return new TestCaseData(substance, beastType, hits).SetName(
+                $"{substance.GetType().Name}_{beastType.Name}"
+            );
         }
     }
 }

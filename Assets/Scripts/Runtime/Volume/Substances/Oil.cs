@@ -16,6 +16,16 @@ namespace SlimesRevenge
 
         public override Substance Clone() => new Oil();
 
+        public override void CollectApplyPreview(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            if (sink == null)
+                return;
+            sink.Add(new Instability());
+            sink.Add(new Flammable());
+        }
+
         protected override void OnApply(Creature target)
         {
             target.AddStatus(new Instability());
@@ -32,8 +42,22 @@ namespace SlimesRevenge
             return base.FindDominanceStatus<T>();
         }
 
-        public override void ApplyDominance(Creature slime, System.Collections.Generic.IList<StatusEffect> queue)
+        public override void CollectDominancePassives(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
         {
+            if (sink == null)
+            {
+                return;
+            }
+
+            var flammable = FindDominanceStatus<Flammable>();
+            if (flammable != null)
+            {
+                sink.Add(flammable);
+            }
+
+            base.CollectDominancePassives(sink);
         }
     }
 }

@@ -5,8 +5,10 @@ namespace SlimesRevenge
 {
     public sealed class Floor
     {
-        private readonly Dictionary<Vector2Int, Puddle> puddles = new Dictionary<Vector2Int, Puddle>();
-        private readonly Dictionary<Vector2Int, List<Creature>> corpses = new Dictionary<Vector2Int, List<Creature>>();
+        private readonly Dictionary<Vector2Int, Puddle> puddles =
+            new Dictionary<Vector2Int, Puddle>();
+        private readonly Dictionary<Vector2Int, List<Creature>> corpses =
+            new Dictionary<Vector2Int, List<Creature>>();
 
         public Puddle GetPuddle(Vector2Int cell)
         {
@@ -51,8 +53,33 @@ namespace SlimesRevenge
                 return;
             }
 
-            puddle.Substance.Apply(creature);
-            puddles.Remove(cell);
+            var substance = puddle.Substance;
+            if (substance != null)
+            {
+                ActionLog.BeginKey(
+                    TextKey.LogStepsPuddle,
+                    ActionLogPart.Creature(creature.Kind),
+                    ActionLogPart.Substance(substance)
+                );
+            }
+            else
+            {
+                ActionLog.BeginKey(
+                    TextKey.LogStepsPuddle,
+                    ActionLogPart.Creature(creature.Kind),
+                    ActionLogPart.Plain("?")
+                );
+            }
+
+            try
+            {
+                substance?.Apply(creature);
+                puddles.Remove(cell);
+            }
+            finally
+            {
+                ActionLog.End();
+            }
         }
 
         public bool TryCollectPuddle(Vector2Int cell, out Substance substance)
@@ -87,6 +114,7 @@ namespace SlimesRevenge
             }
 
             list.Add(corpse);
+            SyncCorpseVisibility(list);
         }
 
         public bool TryTakeCorpse(Vector2Int cell, int index, out Creature corpse)
@@ -99,9 +127,14 @@ namespace SlimesRevenge
 
             corpse = list[index];
             list.RemoveAt(index);
+            SetCorpseVisible(corpse, false);
             if (list.Count == 0)
             {
                 corpses.Remove(cell);
+            }
+            else
+            {
+                SyncCorpseVisibility(list);
             }
 
             return true;
@@ -133,11 +166,46 @@ namespace SlimesRevenge
                 {
                     empty.Add(pair.Key);
                 }
+                else
+                {
+                    SyncCorpseVisibility(pair.Value);
+                }
             }
 
             foreach (var cell in empty)
             {
                 corpses.Remove(cell);
+            }
+        }
+
+        /// <summary>
+        /// Only the top (last) corpse on a cell is drawn; buried ones stay in the stack for the menu.
+        /// </summary>
+        private static void SyncCorpseVisibility(List<Creature> list)
+        {
+            if (list == null)
+            {
+                return;
+            }
+
+            var top = list.Count - 1;
+            for (var i = 0; i < list.Count; i++)
+            {
+                SetCorpseVisible(list[i], i == top);
+            }
+        }
+
+        private static void SetCorpseVisible(Creature body, bool visible)
+        {
+            if (body == null)
+            {
+                return;
+            }
+
+            var renderer = body.GetComponent<SpriteRenderer>();
+            if (renderer != null)
+            {
+                renderer.enabled = visible;
             }
         }
 

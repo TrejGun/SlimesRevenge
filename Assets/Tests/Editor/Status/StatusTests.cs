@@ -133,7 +133,7 @@ namespace SlimesRevenge.Tests
             var origin = new Vector2Int(4, 4);
             var player = Spawn<Slime>(new Vector2Int(4, 0));
             var cat = Spawn<Cat>(origin);
-            var session = new GameSession(World.CreateGrass(), player.Cell, new[] { origin });
+            var session = SessionFactory.WithControlled(World.CreateGrass(), player, cat);
             Assert.IsTrue(Combat.Attack(player, cat, new Oil()));
             Assert.AreEqual(0, cat.Speed);
             cat.TakeTurn(session, player, new FixedRng());
@@ -253,7 +253,8 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(expectedHitPoints, dog.HitPoints);
         }
 
-        private static int Count<T>(Creature creature) where T : Substance
+        private static int Count<T>(Creature creature)
+            where T : Substance
         {
             var count = 0;
             foreach (var unit in creature.Volume.Units)
@@ -267,7 +268,8 @@ namespace SlimesRevenge.Tests
             return count;
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);

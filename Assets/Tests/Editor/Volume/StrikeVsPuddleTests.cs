@@ -72,15 +72,18 @@ namespace SlimesRevenge.Tests
         [Test]
         public void NonAcid_StrikeBlockedByArmor_PuddleStatusOnly_ArmorIntact()
         {
-            Substance[] kinds =
-            {
-                new Water(), new Oil(), new Poison(), new Blood(), new Lava()
-            };
+            Substance[] kinds = { new Water(), new Oil(), new Poison(), new Blood(), new Lava() };
 
             foreach (var kind in kinds)
             {
                 var scorpionStrike = SpawnScorpion();
-                Assert.IsTrue(Combat.Attack(SpawnSlimeWith(Volume.CloneSubstance(kind)), scorpionStrike, Volume.CloneSubstance(kind)));
+                Assert.IsTrue(
+                    Combat.Attack(
+                        SpawnSlimeWith(Volume.CloneSubstance(kind)),
+                        scorpionStrike,
+                        Volume.CloneSubstance(kind)
+                    )
+                );
                 Assert.AreEqual(1, scorpionStrike.Armor, kind.GetType().Name);
                 Assert.AreEqual(3, scorpionStrike.HitPoints, kind.GetType().Name);
 
@@ -138,8 +141,14 @@ namespace SlimesRevenge.Tests
             var target = SpawnScorpion();
             target.SetArmor(10);
             target.SetMaxHitPoints(10);
-            Assert.IsTrue(Combat.Attack(SpawnSlimeWith(sample), target, new StrikeSample(corrosion, power)));
-            Assert.AreEqual(expectArmor, target.Armor, $"Corrosion={corrosion} Power={power} armor");
+            Assert.IsTrue(
+                Combat.Attack(SpawnSlimeWith(sample), target, new StrikeSample(corrosion, power))
+            );
+            Assert.AreEqual(
+                expectArmor,
+                target.Armor,
+                $"Corrosion={corrosion} Power={power} armor"
+            );
             Assert.AreEqual(expectHp, target.HitPoints, $"Corrosion={corrosion} Power={power} hp");
         }
 

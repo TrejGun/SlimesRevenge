@@ -1,22 +1,71 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace SlimesRevenge
 {
+    /// <summary>
+    /// Grid distance and 8-directional adjacency (Chebyshev).
+    /// Single source for player attack range, mob melee, movement steps, and vision rings.
+    /// </summary>
     public static class GridStep
     {
+        /// <summary>The eight cells at Chebyshev distance 1 (orthogonal + diagonal).</summary>
+        public static readonly Vector2Int[] AdjacentOffsets =
+        {
+            new Vector2Int(1, 0),
+            new Vector2Int(1, 1),
+            new Vector2Int(0, 1),
+            new Vector2Int(-1, 1),
+            new Vector2Int(-1, 0),
+            new Vector2Int(-1, -1),
+            new Vector2Int(0, -1),
+            new Vector2Int(1, -1),
+        };
+
         public static int Chebyshev(Vector2Int from, Vector2Int to)
         {
             return Mathf.Max(Mathf.Abs(from.x - to.x), Mathf.Abs(from.y - to.y));
         }
 
+        /// <summary>True when cells share an edge or a corner (Chebyshev distance == 1).</summary>
         public static bool IsAdjacent(Vector2Int from, Vector2Int to)
         {
             return Chebyshev(from, to) == 1;
         }
 
+        /// <summary>Creature melee / touch range — same 8-dir rule as cells.</summary>
+        public static bool IsAdjacent(Creature a, Creature b)
+        {
+            return a != null && b != null && IsAdjacent(a.Cell, b.Cell);
+        }
+
         public static bool InRange(Vector2Int from, Vector2Int to, int range)
         {
             return Chebyshev(from, to) <= range;
+        }
+
+        /// <summary>
+        /// Every cell at exact Chebyshev distance <paramref name="distance"/> from <paramref name="origin"/>.
+        /// </summary>
+        public static IEnumerable<Vector2Int> Ring(Vector2Int origin, int distance)
+        {
+            if (distance <= 0)
+            {
+                yield break;
+            }
+
+            for (var y = -distance; y <= distance; y++)
+            {
+                for (var x = -distance; x <= distance; x++)
+                {
+                    if (Chebyshev(Vector2Int.zero, new Vector2Int(x, y)) != distance)
+                    {
+                        continue;
+                    }
+
+                    yield return origin + new Vector2Int(x, y);
+                }
+            }
         }
 
         public static Vector2Int FromSwipe(Vector2 delta)

@@ -15,7 +15,7 @@ namespace SlimesRevenge
 
         public static bool IsAdjacent(Creature self, Creature other)
         {
-            return self != null && other != null && GridStep.IsAdjacent(self.Cell, other.Cell);
+            return GridStep.IsAdjacent(self, other);
         }
 
         public static bool TryWander(Creature self, GameSession session, IRng rng)
@@ -25,40 +25,77 @@ namespace SlimesRevenge
                 return false;
             }
 
-            return TryStep(self, session, Candidates(session, self.Cell, 1), rng);
+            return TryStep(self, session, WanderCandidates(session, self.Cell), rng);
         }
 
         public static bool TryFlee(Creature self, Creature threat, GameSession session, IRng rng)
         {
-            if (self == null || session == null)
+            if (self == null || session == null || threat == null)
             {
                 return false;
             }
 
-            var goal = self.FleeCell ?? threat?.Cell;
-            if (goal == null)
+            if (
+                self.FleeCell == null
+                || !session.World.IsTerrainWalkable(self.FleeCell.Value)
+                || session.IsOccupied(self.FleeCell.Value)
+                || self.Cell == self.FleeCell.Value
+            )
             {
-                return TryToward(self, session, rng, threat.Cell, farther: true);
+                self.SetFleeCell(CreatureHunt.PickFleeCell(self, threat, session));
             }
 
-            if (self.Cell == goal.Value)
+            var goal = self.FleeCell;
+            if (goal == null || self.Cell == goal.Value)
             {
-                return true;
+                return goal != null && self.Cell == goal.Value;
             }
 
-            if (GridPath.TryWalk(
+            var fromThreat = GridStep.Chebyshev(self.Cell, threat.Cell);
+            if (
+                GridPath.TryWalk(
                     session.World,
                     self.Cell,
                     new[] { goal.Value },
                     cell => IsBlocked(session, self.Cell, cell),
                     self.Speed,
                     out var destination,
-                    self))
+                    self,
+                    threat.Cell
+                )
+                && GridStep.Chebyshev(destination, threat.Cell) > fromThreat
+                && TryStep(self, session, new List<Vector2Int> { destination }, rng)
+            )
             {
-                return TryStep(self, session, new List<Vector2Int> { destination }, rng);
+                return true;
             }
 
-            return TryToward(self, session, rng, threat != null ? threat.Cell : goal.Value, farther: true);
+            // A* to a far waypoint can skirt the threat first; fall back to any adjacent
+            // step that increases Chebyshev distance (still no chase-style BestToward).
+            var away = new List<Vector2Int>();
+            for (var y = -1; y <= 1; y++)
+            {
+                for (var x = -1; x <= 1; x++)
+                {
+                    if (x == 0 && y == 0)
+                    {
+                        continue;
+                    }
+
+                    var cell = self.Cell + new Vector2Int(x, y);
+                    if (IsBlocked(session, self.Cell, cell))
+                    {
+                        continue;
+                    }
+
+                    if (GridStep.Chebyshev(cell, threat.Cell) > fromThreat)
+                    {
+                        away.Add(cell);
+                    }
+                }
+            }
+
+            return TryStep(self, session, away, rng);
         }
 
         public static bool TryChase(Creature self, Creature focus, GameSession session, IRng rng)
@@ -88,24 +125,29 @@ namespace SlimesRevenge
             }
 
             var goals = ApproachCells(session, targetCell, self.Cell);
-            if (goals.Count == 0 && session.World.IsTerrainWalkable(targetCell) && !session.IsOccupied(targetCell))
+            if (
+                goals.Count == 0
+                && session.World.IsTerrainWalkable(targetCell)
+                && !session.IsOccupied(targetCell)
+            )
             {
                 goals.Add(targetCell);
             }
 
-            if (!GridPath.TryWalk(
+            if (goals.Count == 0)
+            {
+                return false;
+            }
+
+            return GridPath.TryWalk(
                     session.World,
                     self.Cell,
                     goals,
                     cell => IsBlocked(session, self.Cell, cell),
                     self.Speed,
                     out var destination,
-                    self))
-            {
-                return false;
-            }
-
-            return TryStep(self, session, new List<Vector2Int> { destination }, rng);
+                    self
+                ) && TryStep(self, session, new List<Vector2Int> { destination }, rng);
         }
 
         public static bool Attack(Creature attacker, Creature target)
@@ -118,7 +160,13 @@ namespace SlimesRevenge
             return Attack(null, target);
         }
 
-        public static bool Perform(CreatureIntent intent, Creature self, Creature focus, GameSession session, IRng rng)
+        public static bool Perform(
+            CreatureIntent intent,
+            Creature self,
+            Creature focus,
+            GameSession session,
+            IRng rng
+        )
         {
             switch (intent)
             {
@@ -137,24 +185,12 @@ namespace SlimesRevenge
             }
         }
 
-        private static bool TryToward(Creature self, GameSession session, IRng rng, Vector2Int anchor, bool farther)
-        {
-            var speed = self.Speed;
-            if (speed < 1)
-            {
-                return false;
-            }
-
-            var current = GridStep.Chebyshev(self.Cell, anchor);
-            if (speed > 1 && TryStep(self, session, Filtered(session, self.Cell, speed, anchor, current, farther), rng))
-            {
-                return true;
-            }
-
-            return TryStep(self, session, Filtered(session, self.Cell, 1, anchor, current, farther), rng);
-        }
-
-        private static bool TryStep(Creature self, GameSession session, List<Vector2Int> options, IRng rng)
+        private static bool TryStep(
+            Creature self,
+            GameSession session,
+            List<Vector2Int> options,
+            IRng rng
+        )
         {
             if (self == null || session == null || options == null || options.Count == 0)
             {
@@ -173,7 +209,11 @@ namespace SlimesRevenge
             return true;
         }
 
-        private static List<Vector2Int> ApproachCells(GameSession session, Vector2Int target, Vector2Int selfCell)
+        private static List<Vector2Int> ApproachCells(
+            GameSession session,
+            Vector2Int target,
+            Vector2Int selfCell
+        )
         {
             var cells = new List<Vector2Int>();
             for (var y = -1; y <= 1; y++)
@@ -192,9 +232,7 @@ namespace SlimesRevenge
                         continue;
                     }
 
-                    if (session.World.IsTerrainWalkable(cell)
-                        && cell != session.PlayerCell
-                        && !session.IsOccupied(cell))
+                    if (session.World.IsTerrainWalkable(cell) && !session.IsOccupied(cell))
                     {
                         cells.Add(cell);
                     }
@@ -220,48 +258,17 @@ namespace SlimesRevenge
                 return true;
             }
 
-            if (cell == session.PlayerCell)
-            {
-                return true;
-            }
-
             return cell != self && session.IsOccupied(cell);
         }
 
-        private static List<Vector2Int> Filtered(
-            GameSession session,
-            Vector2Int from,
-            int step,
-            Vector2Int anchor,
-            int current,
-            bool farther)
-        {
-            var cells = Candidates(session, from, step);
-            cells.RemoveAll(to =>
-            {
-                var next = GridStep.Chebyshev(to, anchor);
-                return farther ? next <= current : next >= current;
-            });
-            return cells;
-        }
-
-        private static List<Vector2Int> Candidates(GameSession session, Vector2Int from, int step)
+        private static List<Vector2Int> WanderCandidates(GameSession session, Vector2Int from)
         {
             var cells = new List<Vector2Int>();
-            for (var y = -step; y <= step; y++)
+            foreach (var to in GridStep.Ring(from, 1))
             {
-                for (var x = -step; x <= step; x++)
+                if (session != null && session.CanOccupantStep(from, to))
                 {
-                    if (GridStep.Chebyshev(Vector2Int.zero, new Vector2Int(x, y)) != step)
-                    {
-                        continue;
-                    }
-
-                    var to = from + new Vector2Int(x, y);
-                    if (session != null && session.CanOccupantStep(from, to))
-                    {
-                        cells.Add(to);
-                    }
+                    cells.Add(to);
                 }
             }
 

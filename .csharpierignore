@@ -1,0 +1,17 @@
+# Unity generated / caches
+Library/
+Temp/
+Obj/
+Logs/
+Build/
+Builds/
+UserSettings/
+MemoryCaptures/
+Recordings/
+
+# Third-party (do not reformat vendor trees)
+Assets/AstarPathfindingProject/
+Packages/
+
+# Local tooling scratch
+scripts/out/

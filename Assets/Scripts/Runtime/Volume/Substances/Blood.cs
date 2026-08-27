@@ -16,12 +16,13 @@ namespace SlimesRevenge
 
         public override Substance Clone() => new Blood();
 
-        protected override void OnApply(Creature target)
-        {
-            target.FindStatus<Vampirism>()?.Drink(target);
-        }
+        // Apply residue is handled by statuses via Creature.NotifyReceivedSubstance
+        // (e.g. Vampirism) — Blood does not name traits.
 
-        public override void ApplyDominance(Creature slime, System.Collections.Generic.IList<StatusEffect> queue)
+        public override void ApplyDominance(
+            Creature slime,
+            System.Collections.Generic.IList<StatusEffect> queue
+        )
         {
             if (queue == null)
             {
@@ -37,6 +38,19 @@ namespace SlimesRevenge
             }
 
             queue.Insert(0, new Regeneration());
+        }
+
+        public override void CollectDominancePassives(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            if (sink == null)
+            {
+                return;
+            }
+
+            sink.Add(new Regeneration());
+            base.CollectDominancePassives(sink);
         }
     }
 }

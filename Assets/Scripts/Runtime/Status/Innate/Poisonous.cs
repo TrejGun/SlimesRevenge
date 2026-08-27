@@ -8,6 +8,8 @@ namespace SlimesRevenge
     {
         public override string Label => I18n.Get(TextKey.StatusPoisonous);
 
+        public override string Description => I18n.Get(TextKey.StatusPoisonousDesc);
+
         public override bool Blocks(StatusEffect incoming) => incoming is Poisoned;
 
         public override int? FloorPriorityOverride(Substance substance)
@@ -15,9 +17,15 @@ namespace SlimesRevenge
             return substance is Poison ? 0 : null;
         }
 
-        public void ApplyOnHit(Creature target)
+        public override void OnOwnerDealtMeleeHit(Creature owner, Creature target)
         {
-            target?.AddStatus(new Poisoned());
+            if (target == null)
+            {
+                return;
+            }
+
+            LogMarker();
+            target.AddStatus(new Poisoned());
         }
     }
 }

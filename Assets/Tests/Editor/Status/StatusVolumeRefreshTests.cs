@@ -164,7 +164,8 @@ namespace SlimesRevenge.Tests
             return slime;
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = new GameObject(typeof(T).Name).AddComponent<T>();
             spawned.Add(creature.gameObject);

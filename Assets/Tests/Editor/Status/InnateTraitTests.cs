@@ -28,8 +28,8 @@ namespace SlimesRevenge.Tests
             var rat = Spawn<Rat>();
             Assert.IsNull(rat.FindStatus<Vampirism>());
             Assert.IsNull(rat.FindStatus<HatesRats>());
-            Assert.IsNotNull(rat.FindStatus<FearsSlimes>());
             Assert.IsNotNull(rat.FindStatus<FearsCats>());
+            Assert.AreEqual(CreaturePersonality.Cowardly, rat.Personality);
 
             var cat = Spawn<Cat>();
             Assert.IsNotNull(cat.FindStatus<HatesRats>());
@@ -91,6 +91,33 @@ namespace SlimesRevenge.Tests
 
             Assert.IsTrue(Combat.Attack(bat, slime));
             Assert.AreEqual(3, bat.HitPoints);
+        }
+
+        [Test]
+        public void BloodApply_OnBat_HealsButDoesNotGrantVampirismToTarget()
+        {
+            var bat = Spawn<Bat>();
+            bat.Damage(1);
+            Assert.AreEqual(2, bat.HitPoints);
+            Assert.IsNotNull(bat.FindStatus<Vampirism>());
+
+            new Blood().Apply(bat);
+
+            Assert.AreEqual(3, bat.HitPoints);
+            Assert.AreEqual(1, bat.CountStatus<Vampirism>());
+        }
+
+        [Test]
+        public void BloodApply_OnRatWithoutVampirism_DoesNothing()
+        {
+            var rat = Spawn<Rat>();
+            var before = rat.HitPoints;
+            Assert.IsNull(rat.FindStatus<Vampirism>());
+
+            new Blood().Apply(rat);
+
+            Assert.AreEqual(before, rat.HitPoints);
+            Assert.IsNull(rat.FindStatus<Vampirism>());
         }
 
         [Test]
@@ -202,7 +229,8 @@ namespace SlimesRevenge.Tests
             return slime;
         }
 
-        private T Spawn<T>() where T : Creature
+        private T Spawn<T>()
+            where T : Creature
         {
             var creature = new GameObject(typeof(T).Name).AddComponent<T>();
             spawned.Add(creature.gameObject);

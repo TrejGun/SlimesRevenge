@@ -62,7 +62,8 @@ namespace SlimesRevenge
             var rows = Mathf.CeilToInt((float)Volume.Capacity / Columns);
             panel.sizeDelta = new Vector2(
                 Columns * Slot + (Columns - 1) * Gap,
-                rows * Slot + (rows - 1) * Gap);
+                rows * Slot + (rows - 1) * Gap
+            );
 
             var fillSprite = CreateSprite(ref fillTexture, Color.white, false);
             var frameSprite = CreateSprite(ref frameTexture, Color.white, true);
@@ -72,14 +73,16 @@ namespace SlimesRevenge
                 var column = i % Columns;
                 var row = i / Columns;
                 var slot = CreateSlot(panel, fillSprite, frameSprite);
-                slot.anchoredPosition = new Vector2(
-                    column * (Slot + Gap),
-                    -row * (Slot + Gap));
+                slot.anchoredPosition = new Vector2(column * (Slot + Gap), -row * (Slot + Gap));
                 fills[i] = slot.GetComponent<Image>();
             }
         }
 
-        private static RectTransform CreateSlot(RectTransform parent, Sprite fillSprite, Sprite frameSprite)
+        private static RectTransform CreateSlot(
+            RectTransform parent,
+            Sprite fillSprite,
+            Sprite frameSprite
+        )
         {
             var slot = new GameObject("Slot").AddComponent<RectTransform>();
             slot.SetParent(parent, false);
@@ -111,7 +114,7 @@ namespace SlimesRevenge
             texture = new Texture2D(size, size, TextureFormat.ARGB32, false)
             {
                 filterMode = FilterMode.Point,
-                wrapMode = TextureWrapMode.Clamp
+                wrapMode = TextureWrapMode.Clamp,
             };
             for (var y = 0; y < size; y++)
             {
@@ -130,7 +133,12 @@ namespace SlimesRevenge
             }
 
             texture.Apply();
-            return Sprite.Create(texture, new Rect(0f, 0f, size, size), new Vector2(0.5f, 0.5f), size);
+            return Sprite.Create(
+                texture,
+                new Rect(0f, 0f, size, size),
+                new Vector2(0.5f, 0.5f),
+                size
+            );
         }
 
         private void Refresh()

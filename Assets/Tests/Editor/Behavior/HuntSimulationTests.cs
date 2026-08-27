@@ -31,7 +31,8 @@ namespace SlimesRevenge.Tests
 
                             Assert.IsTrue(
                                 win.Contains((slime, rat)),
-                                $"No finite hunt from slime {slime} to rat {rat}.");
+                                $"No finite hunt from slime {slime} to rat {rat}."
+                            );
                         }
                     }
                 }
@@ -99,7 +100,8 @@ namespace SlimesRevenge.Tests
             World world,
             HashSet<(Vector2Int, Vector2Int)> win,
             Vector2Int slime,
-            Vector2Int rat)
+            Vector2Int rat
+        )
         {
             foreach (var next in Neighbors(world, slime))
             {
@@ -121,12 +123,16 @@ namespace SlimesRevenge.Tests
             World world,
             HashSet<(Vector2Int, Vector2Int)> win,
             Vector2Int slime,
-            Vector2Int rat)
+            Vector2Int rat
+        )
         {
             var replies = 0;
             foreach (var flee in Neighbors(world, rat))
             {
-                if (flee == slime || GridStep.Chebyshev(flee, slime) <= GridStep.Chebyshev(rat, slime))
+                if (
+                    flee == slime
+                    || GridStep.Chebyshev(flee, slime) <= GridStep.Chebyshev(rat, slime)
+                )
                 {
                     continue;
                 }

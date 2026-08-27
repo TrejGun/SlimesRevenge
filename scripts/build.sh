@@ -17,9 +17,18 @@ if [[ -z "$TARGET" ]]; then
 fi
 
 case "$TARGET" in
-  Android) METHOD="SlimesRevenge.Editor.MobileBuilder.BuildAndroid" ;;
-  iOS) METHOD="SlimesRevenge.Editor.MobileBuilder.BuildIOS" ;;
-  OSX|macOS|Mac) METHOD="SlimesRevenge.Editor.MobileBuilder.BuildOSX" ;;
+  Android)
+    METHOD="SlimesRevenge.Editor.MobileBuilder.BuildAndroid"
+    BUILD_TARGET="Android"
+    ;;
+  iOS)
+    METHOD="SlimesRevenge.Editor.MobileBuilder.BuildIOS"
+    BUILD_TARGET="iOS"
+    ;;
+  OSX|macOS|Mac)
+    METHOD="SlimesRevenge.Editor.MobileBuilder.BuildOSX"
+    BUILD_TARGET="StandaloneOSX"
+    ;;
   *)
     echo "Unknown target: $TARGET (expected Android, iOS, or OSX)" >&2
     exit 1
@@ -33,7 +42,7 @@ echo "Building $TARGET..."
   -nographics \
   -quit \
   -projectPath "$ROOT" \
-  -buildTarget "$TARGET" \
+  -buildTarget "$BUILD_TARGET" \
   -executeMethod "$METHOD" \
   -logFile "$ROOT/Logs/build-${TARGET}.log"
 

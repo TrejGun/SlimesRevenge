@@ -21,61 +21,84 @@ namespace SlimesRevenge
         /// <summary>
         /// Apply <paramref name="effect"/> unless blocked (dominance or queue) or mutually
         /// cancelled with an existing entry. Cancel removes the existing entry and drops incoming.
+        /// Returns true when the effect was queued.
         /// </summary>
-        public void Add(StatusEffect effect, VolumeDominance dominance = null)
+        public bool Add(StatusEffect effect, VolumeDominance dominance = null)
         {
             if (effect == null)
             {
-                return;
+                return false;
             }
 
             if (dominance != null && dominance.Blocks(effect))
             {
-                return;
+                return false;
             }
 
             for (var i = 0; i < items.Count; i++)
             {
                 if (items[i].Blocks(effect))
                 {
-                    return;
+                    return false;
                 }
             }
 
             var cancelled = false;
             for (var i = items.Count - 1; i >= 0; i--)
             {
-                if (items[i].CancelsWith(effect))
+                if (!items[i].CancelsWith(effect))
                 {
-                    items.RemoveAt(i);
-                    cancelled = true;
+                    continue;
                 }
+
+                var existing = items[i];
+                items.RemoveAt(i);
+                existing.OnRemoved(null);
+                cancelled = true;
             }
 
             if (cancelled)
             {
-                return;
+                return false;
             }
 
             items.Add(effect);
+            return true;
         }
 
-        public bool Clear<T>() where T : StatusEffect
+        public bool Clear<T>(Creature owner = null)
+            where T : StatusEffect
         {
             var removed = false;
             for (var i = items.Count - 1; i >= 0; i--)
             {
-                if (items[i] is T)
+                if (items[i] is not T)
                 {
-                    items.RemoveAt(i);
-                    removed = true;
+                    continue;
                 }
+
+                var effect = items[i];
+                items.RemoveAt(i);
+                effect.OnRemoved(owner);
+                removed = true;
             }
 
             return removed;
         }
 
-        public T Find<T>(VolumeDominance dominance = null) where T : StatusEffect
+        /// <summary>Remove every queued effect, notifying each via <see cref="StatusEffect.OnRemoved"/>.</summary>
+        public void ClearAll(Creature owner = null)
+        {
+            for (var i = items.Count - 1; i >= 0; i--)
+            {
+                var effect = items[i];
+                items.RemoveAt(i);
+                effect.OnRemoved(owner);
+            }
+        }
+
+        public T Find<T>(VolumeDominance dominance = null)
+            where T : StatusEffect
         {
             T best = dominance != null ? dominance.FindStatus<T>() : null;
 
@@ -95,7 +118,8 @@ namespace SlimesRevenge
             return best;
         }
 
-        public int CountOf<T>(VolumeDominance dominance = null) where T : StatusEffect
+        public int CountOf<T>(VolumeDominance dominance = null)
+            where T : StatusEffect
         {
             var count = 0;
             if (dominance != null && dominance.FindStatus<T>() != null)
@@ -153,6 +177,7 @@ namespace SlimesRevenge
                 if (next.Expired)
                 {
                     items.Remove(next);
+                    next.OnRemoved(owner);
                 }
 
                 if (!owner.IsAlive)

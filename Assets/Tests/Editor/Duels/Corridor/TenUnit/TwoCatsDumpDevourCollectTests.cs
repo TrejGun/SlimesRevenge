@@ -27,20 +27,25 @@ namespace SlimesRevenge.Tests.Duels.Corridor.TenUnit
             Assert.AreEqual(9, slime.Volume.UnitCount);
             Assert.AreEqual(new Vector2Int(6, 0), rear.Cell);
             Assert.IsFalse(turns.Session.IsOccupied(CorridorFoeCell));
-            Assert.AreEqual(5, turns.Session.World.Floor.GetCorpses(CorridorFoeCell)[0].DecayTurnsLeft);
+            Assert.AreEqual(
+                5,
+                turns.Session.World.Floor.GetCorpses(CorridorFoeCell)[0].DecayTurnsLeft
+            );
 
             Assert.IsTrue(turns.TryMoveTo(CorridorFoeCell));
             Assert.IsTrue(turns.TryMakeMess(new Water()));
             Assert.AreEqual(8, slime.Volume.UnitCount);
-            Assert.IsInstanceOf<Water>(turns.Session.World.Floor.GetPuddle(CorridorFoeCell).Substance);
+            Assert.IsInstanceOf<Water>(
+                turns.Session.World.Floor.GetPuddle(CorridorFoeCell).Substance
+            );
             Assert.AreEqual(1, turns.Session.World.Floor.GetCorpses(CorridorFoeCell).Count);
 
             Assert.IsTrue(turns.TryDevourCorpse(0));
-            Assert.AreEqual(9, slime.Volume.UnitCount);
-            Assert.IsTrue(slime.Digestion.IsBusy);
+            Assert.AreEqual(8, slime.Volume.UnitCount);
+            Assert.IsTrue(slime.IsDigesting);
             Assert.IsTrue(turns.TryWait());
             Assert.AreEqual(Volume.Capacity, slime.Volume.UnitCount);
-            Assert.IsFalse(slime.Digestion.IsBusy);
+            Assert.IsFalse(slime.IsDigesting);
             Assert.IsNotNull(turns.Session.World.Floor.GetPuddle(CorridorFoeCell));
 
             Assert.IsTrue(turns.TryAttack(new Vector2Int(6, 0), new Water()));

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace SlimesRevenge
 {
     public static class Combat
@@ -15,34 +17,30 @@ namespace SlimesRevenge
                 return false;
             }
 
-            if (attacker is Slime)
+            attacker.RefreshVolumeStatuses();
+
+            ActionLog.BeginKey(
+                TextKey.LogHitWith,
+                ActionLogPart.Creature(attacker.Kind),
+                ActionLogPart.Creature(target.Kind),
+                ActionLogPart.Substance(substance)
+            );
+            try
             {
-                attacker.RefreshVolumeStatuses();
+                ResolveHit(
+                    attacker,
+                    target,
+                    power: substance.StrikePower(target),
+                    corrosion: substance.Corrosion,
+                    afterDamageAlive: () => substance.Apply(target),
+                    afterMelee: null
+                );
+                return true;
             }
-
-            var power = substance.StrikePower(target);
-
-            // Snapshot before Damage: volume hits can drop dominance and clear retaliation.
-            var retaliation = target.FindStatus<Retaliation>();
-
-            // Corrosion strips armor first; Power then faces remaining armor as flat DR.
-            target.StripArmor(substance.Corrosion);
-            target.Damage(power, out var tipStruck, blockedByArmor: true);
-
-            if (target.IsAlive)
+            finally
             {
-                substance.Apply(target);
-                retaliation?.Retort?.Apply(attacker);
+                ActionLog.End();
             }
-
-            attacker.FindStatus<Vampirism>()?.OnStrike(attacker, tipStruck);
-
-            if (target is Slime)
-            {
-                target.RefreshVolumeStatuses();
-            }
-
-            return true;
         }
 
         /// <summary>Melee attack without a substance (creature melee / bare hit).</summary>
@@ -53,22 +51,78 @@ namespace SlimesRevenge
                 return false;
             }
 
-            var retaliation = target.FindStatus<Retaliation>();
-            target.Damage(1, out var tipStruck);
-            if (target.IsAlive && attacker != null)
+            var attackerPart =
+                attacker != null ? ActionLogPart.Creature(attacker.Kind) : ActionLogPart.Plain("?");
+            ActionLog.BeginKey(TextKey.LogHit, attackerPart, ActionLogPart.Creature(target.Kind));
+            try
             {
-                retaliation?.Retort?.Apply(attacker);
-                attacker.FindStatus<Poisonous>()?.ApplyOnHit(target);
+                ResolveHit(
+                    attacker,
+                    target,
+                    power: 1,
+                    corrosion: 0,
+                    afterDamageAlive: null,
+                    afterMelee: () =>
+                    {
+                        // Mob melee vs slime sticks personality combat (Aggressive keeps chase).
+                        if (target is Slime)
+                        {
+                            attacker?.MarkAggro();
+                            attacker?.RememberPursuit(target.Cell);
+                        }
+
+                        attacker?.NotifyDealtMeleeHit(target);
+                    }
+                );
+                return true;
+            }
+            finally
+            {
+                ActionLog.End();
+            }
+        }
+
+        /// <summary>
+        /// Shared strike pipeline. Order: capture → strip → damage → (alive) apply/dispatch →
+        /// tip notify → refresh → death log.
+        /// </summary>
+        private static void ResolveHit(
+            Creature attacker,
+            Creature target,
+            int power,
+            int corrosion,
+            System.Action afterDamageAlive,
+            System.Action afterMelee
+        )
+        {
+            // Snapshot before Damage: volume hits can drop dominance and clear retorts.
+            var survivedHit = new List<StatusEffect>(2);
+            target.CaptureSurvivedHitReactions(survivedHit);
+
+            var armorStripped = target.StripArmor(corrosion);
+            target.Damage(power, out var tipStruck, out var applied, blockedByArmor: true);
+            ActionLog.DetailDamage(target, armorStripped, applied);
+
+            if (target.IsAlive)
+            {
+                afterDamageAlive?.Invoke();
+                target.DispatchSurvivedHitReactions(survivedHit, attacker);
+                afterMelee?.Invoke();
             }
 
-            attacker?.FindStatus<Vampirism>()?.OnStrike(attacker, tipStruck);
+            attacker?.NotifyStruckVolumeTip(tipStruck);
+            target.RefreshVolumeStatuses();
+            LogDeath(target);
+        }
 
-            if (target is Slime)
+        private static void LogDeath(Creature target)
+        {
+            if (target == null || target.IsAlive)
             {
-                target.RefreshVolumeStatuses();
+                return;
             }
 
-            return true;
+            ActionLog.DetailKey(TextKey.LogDies, ActionLogPart.Creature(target.Kind));
         }
     }
 }

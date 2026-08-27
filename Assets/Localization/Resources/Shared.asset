@@ -16,7 +16,7 @@ MonoBehaviour:
   m_TableCollectionNameGuidString: a1111820000000000000000000000001
   m_Entries:
   - m_Id: 1
-    m_Key: combat.attack
+    m_Key: menu.attack
     m_Metadata:
       m_Items: []
   - m_Id: 2
@@ -64,15 +64,47 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 14
-    m_Key: combat.mess
+    m_Key: menu.mess
     m_Metadata:
       m_Items: []
   - m_Id: 15
-    m_Key: combat.collect
+    m_Key: menu.collect
     m_Metadata:
       m_Items: []
   - m_Id: 16
-    m_Key: combat.devour
+    m_Key: menu.devour
+    m_Metadata:
+      m_Items: []
+  - m_Id: 31
+    m_Key: menu.info
+    m_Metadata:
+      m_Items: []
+  - m_Id: 32
+    m_Key: log.hit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 33
+    m_Key: log.hit_with
+    m_Metadata:
+      m_Items: []
+  - m_Id: 34
+    m_Key: log.gains
+    m_Metadata:
+      m_Items: []
+  - m_Id: 35
+    m_Key: log.steps_puddle
+    m_Metadata:
+      m_Items: []
+  - m_Id: 36
+    m_Key: log.armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 37
+    m_Key: log.hp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 38
+    m_Key: log.volume
     m_Metadata:
       m_Items: []
   - m_Id: 17
@@ -111,10 +143,6 @@ MonoBehaviour:
     m_Key: status.hates_cats
     m_Metadata:
       m_Items: []
-  - m_Id: 26
-    m_Key: status.fears_slimes
-    m_Metadata:
-      m_Items: []
   - m_Id: 27
     m_Key: status.fears_cats
     m_Metadata:
@@ -131,5 +159,326 @@ MonoBehaviour:
     m_Key: status.regeneration
     m_Metadata:
       m_Items: []
+  - m_Id: 39
+    m_Key: log.dies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 40
+    m_Key: status.poisoned.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 41
+    m_Key: status.corroding.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 42
+    m_Key: status.instability.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 43
+    m_Key: status.burning.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 44
+    m_Key: status.wet.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 45
+    m_Key: status.fireproof.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 46
+    m_Key: status.flammable.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 47
+    m_Key: status.retaliation.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 48
+    m_Key: status.regeneration.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 49
+    m_Key: status.vampirism.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 50
+    m_Key: status.poisonous.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 51
+    m_Key: status.hates_rats.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 52
+    m_Key: status.hates_cats.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 54
+    m_Key: status.fears_cats.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 55
+    m_Key: status.fears_dogs.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 56
+    m_Key: status.fears_water.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 57
+    m_Key: status.timer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 58
+    m_Key: status.forever
+    m_Metadata:
+      m_Items: []
+  - m_Id: 59
+    m_Key: ui.back
+    m_Metadata:
+      m_Items: []
+  - m_Id: 60
+    m_Key: card.volume
+    m_Metadata:
+      m_Items: []
+  - m_Id: 61
+    m_Key: card.statuses
+    m_Metadata:
+      m_Items: []
+  - m_Id: 62
+    m_Key: card.applies
+    m_Metadata:
+      m_Items: []
+  - m_Id: 63
+    m_Key: card.power
+    m_Metadata:
+      m_Items: []
+  - m_Id: 64
+    m_Key: card.corrosion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 65
+    m_Key: card.none
+    m_Metadata:
+      m_Items: []
+  - m_Id: 66
+    m_Key: log.damage_taken
+    m_Metadata:
+      m_Items: []
+  - m_Id: 67
+    m_Key: log.retaliation
+    m_Metadata:
+      m_Items: []
+  - m_Id: 68
+    m_Key: log.heals
+    m_Metadata:
+      m_Items: []
+  - m_Id: 69
+    m_Key: log.turn
+    m_Metadata:
+      m_Items: []
+  - m_Id: 70
+    m_Key: log.collects
+    m_Metadata:
+      m_Items: []
+  - m_Id: 71
+    m_Key: log.dominance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 72
+    m_Key: log.dominance_lost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 73
+    m_Key: log.grows
+    m_Metadata:
+      m_Items: []
+  - m_Id: 74
+    m_Key: log.messes
+    m_Metadata:
+      m_Items: []
+  - m_Id: 75
+    m_Key: log.digests
+    m_Metadata:
+      m_Items: []
+  - m_Id: 76
+    m_Key: status.digesting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 77
+    m_Key: status.digesting.desc
+    m_Metadata:
+      m_Items: []
+  - m_Id: 78
+    m_Key: creature.slime
+    m_Metadata:
+      m_Items: []
+  - m_Id: 79
+    m_Key: creature.rat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 80
+    m_Key: creature.cat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 81
+    m_Key: creature.dog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 82
+    m_Key: creature.bat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 83
+    m_Key: creature.scorpion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 84
+    m_Key: card.corpse_suffix
+    m_Metadata:
+      m_Items: []
+  - m_Id: 85
+    m_Key: card.volume_of
+    m_Metadata:
+      m_Items: []
+  - m_Id: 86
+    m_Key: card.dominant
+    m_Metadata:
+      m_Items: []
+  - m_Id: 87
+    m_Key: card.digesting
+    m_Metadata:
+      m_Items: []
+  - m_Id: 88
+    m_Key: card.hp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 89
+    m_Key: card.armor
+    m_Metadata:
+      m_Items: []
+  - m_Id: 90
+    m_Key: card.volume_count
+    m_Metadata:
+      m_Items: []
+  - m_Id: 91
+    m_Key: card.decay
+    m_Metadata:
+      m_Items: []
+  - m_Id: 92
+    m_Key: menu.corpse_choice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 93
+    m_Key: menu.puddle_choice
+    m_Metadata:
+      m_Items: []
+  - m_Id: 94
+    m_Key: log.devours
+    m_Metadata:
+      m_Items: []
+  - m_Id: 95
+    m_Key: card.dominance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 96
+    m_Key: log.run_started
+    m_Metadata:
+      m_Items: []
+  - m_Id: 97
+    m_Key: mode.hardcore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 98
+    m_Key: mode.softcore
+    m_Metadata:
+      m_Items: []
+  - m_Id: 99
+    m_Key: menu.title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 100
+    m_Key: menu.duel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 101
+    m_Key: menu.campaign
+    m_Metadata:
+      m_Items: []
+  - m_Id: 102
+    m_Key: menu.credits
+    m_Metadata:
+      m_Items: []
+  - m_Id: 103
+    m_Key: menu.quit
+    m_Metadata:
+      m_Items: []
+  - m_Id: 104
+    m_Key: menu.campaign_soon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 105
+    m_Key: menu.credits_title
+    m_Metadata:
+      m_Items: []
+  - m_Id: 106
+    m_Key: menu.credits_body
+    m_Metadata:
+      m_Items: []
+  - m_Id: 107
+    m_Key: menu.duel_setup
+    m_Metadata:
+      m_Items: []
+  - m_Id: 108
+    m_Key: menu.opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 109
+    m_Key: menu.loadout_slot
+    m_Metadata:
+      m_Items: []
+  - m_Id: 110
+    m_Key: menu.start_duel
+    m_Metadata:
+      m_Items: []
+  - m_Id: 111
+    m_Key: menu.pick_opponent
+    m_Metadata:
+      m_Items: []
+  - m_Id: 112
+    m_Key: menu.pick_substance
+    m_Metadata:
+      m_Items: []
+  - m_Id: 113
+    m_Key: menu.next
+    m_Metadata:
+      m_Items: []
+  - m_Id: 114
+    m_Key: log.collapse
+    m_Metadata:
+      m_Items: []
+  - m_Id: 115
+    m_Key: log.expand
+    m_Metadata:
+      m_Items: []
+  - m_Id: 116
+    m_Key: log.duel_started
+    m_Metadata:
+      m_Items: []
+  - m_Id: 117
+    m_Key: log.campaign_started
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
+  m_KeyGenerator:
+    rid: 7566106273982447705
+  references:
+    version: 2
+    RefIds:
+    - rid: 7566106273982447705
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1787846276050

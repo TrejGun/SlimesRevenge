@@ -8,7 +8,8 @@ namespace SlimesRevenge
     {
         public GameSession Session { get; private set; }
 
-        public bool IsWaitingForInput => !IsGameOver && (Session == null || Session.WaitingForInput);
+        public bool IsWaitingForInput =>
+            !IsGameOver && (Session == null || Session.WaitingForInput);
 
         public bool IsGameOver { get; private set; }
 
@@ -24,6 +25,7 @@ namespace SlimesRevenge
         private Creature player;
         private readonly List<Creature> others = new List<Creature>();
         private readonly List<GameObject> puddleViews = new List<GameObject>();
+
         // Death mid-resolve: skip floor aging so a fresh corpse is still there next input,
         // and an older 1 unit corpse can stack with a kill on the immediate next action.
         private bool pauseCorpseAging;
@@ -31,12 +33,24 @@ namespace SlimesRevenge
 
         public IRng Rng { get; set; } = new SystemRng();
 
-        public void Bind(World world, Creature player, params Creature[] occupants)
+        /// <summary>Optional creature driven by player input. Null for board-only sims.</summary>
+        public Creature Controlled => player;
+
+        /// <summary>
+        /// Bind a board. Pass <paramref name="controlled"/> null for sims without a player;
+        /// all <paramref name="occupants"/> (and controlled, if any) occupy cells.
+        /// </summary>
+        public void Bind(World world, Creature controlled, params Creature[] occupants)
         {
-            this.player = player;
+            player = controlled;
             IsGameOver = false;
             others.Clear();
             var cells = new List<Vector2Int>();
+            if (controlled != null)
+            {
+                cells.Add(controlled.Cell);
+            }
+
             foreach (var creature in occupants)
             {
                 if (creature == null)
@@ -45,18 +59,22 @@ namespace SlimesRevenge
                 }
 
                 others.Add(creature);
-                cells.Add(creature.Cell);
+                if (!cells.Contains(creature.Cell))
+                {
+                    cells.Add(creature.Cell);
+                }
             }
 
-            Session = new GameSession(world, player.Cell, cells)
+            Session = new GameSession(world, cells)
             {
-                OnPlayerMoved = AfterPlayerMoved,
+                OnControlledMoved = AfterControlledMoved,
                 OnEnemyTurn = TickMobs,
-                OnEnvironment = BeginPlayerTurn
+                OnEnvironment = BeginPlayerTurn,
             };
+            Session.SetControlled(controlled?.Cell);
             RefreshFloorViews();
-            // Opening turn only if the slime is already alive (empty stack = dead).
-            if (player != null && player.IsAlive)
+            // Opening turn only if a controlled creature is already alive.
+            if (controlled != null && controlled.IsAlive)
             {
                 BeginPlayerTurn();
             }
@@ -89,6 +107,11 @@ namespace SlimesRevenge
                 return false;
             }
 
+            if (player.Volume == null || !player.Volume.CanSpend)
+            {
+                return false;
+            }
+
             var target = CreatureAt(cell);
             if (target == null || !Combat.Attack(player, target, substance))
             {
@@ -117,6 +140,11 @@ namespace SlimesRevenge
                 return false;
             }
 
+            if (player.Volume == null || !player.Volume.CanSpend)
+            {
+                return false;
+            }
+
             if (Session.World.Floor.GetPuddle(player.Cell) != null)
             {
                 return false;
@@ -133,9 +161,18 @@ namespace SlimesRevenge
                 return false;
             }
 
-            if (player is Slime)
+            ActionLog.BeginKey(
+                TextKey.LogMesses,
+                ActionLogPart.Creature(player.Kind),
+                ActionLogPart.Substance(substance)
+            );
+            try
             {
                 player.RefreshVolumeStatuses();
+            }
+            finally
+            {
+                ActionLog.End();
             }
 
             RefreshFloorViews();
@@ -159,10 +196,19 @@ namespace SlimesRevenge
                 return false;
             }
 
-            player.Volume.Add(Volume.CloneSubstance(substance));
-            if (player is Slime)
+            ActionLog.BeginKey(
+                TextKey.LogCollects,
+                ActionLogPart.Creature(player.Kind),
+                ActionLogPart.Substance(substance)
+            );
+            try
             {
+                player.Volume.Add(Volume.CloneSubstance(substance));
                 player.RefreshVolumeStatuses();
+            }
+            finally
+            {
+                ActionLog.End();
             }
 
             RefreshFloorViews();
@@ -171,7 +217,7 @@ namespace SlimesRevenge
 
         public bool TryDevourCorpse(int index)
         {
-            if (Session == null || player == null || player.Digestion.IsBusy)
+            if (Session == null || player == null || player.IsDigesting)
             {
                 return false;
             }
@@ -181,17 +227,35 @@ namespace SlimesRevenge
                 return false;
             }
 
-            if (!player.Digestion.TryBegin(corpse))
+            if (!Digesting.CanBegin(player.Volume, corpse))
             {
                 Session.World.Floor.AddCorpse(corpse);
                 return false;
+            }
+
+            ActionLog.BeginKey(
+                TextKey.LogDevours,
+                ActionLogPart.Creature(player.Kind),
+                ActionLogPart.Creature(corpse.Kind)
+            );
+            try
+            {
+                if (!player.AddStatus(new Digesting(corpse)))
+                {
+                    Session.World.Floor.AddCorpse(corpse);
+                    return false;
+                }
+            }
+            finally
+            {
+                ActionLog.End();
             }
 
             RefreshFloorViews();
             return Act(session => session.TryWait());
         }
 
-        private Creature CreatureAt(Vector2Int cell)
+        public Creature LivingAt(Vector2Int cell)
         {
             foreach (var creature in others)
             {
@@ -204,11 +268,13 @@ namespace SlimesRevenge
             return null;
         }
 
-        private void AfterPlayerMoved()
+        private Creature CreatureAt(Vector2Int cell) => LivingAt(cell);
+
+        private void AfterControlledMoved()
         {
-            if (player != null)
+            if (player != null && Session.ControlledCell != null)
             {
-                player.PlaceOn(Session.PlayerCell);
+                player.PlaceOn(Session.ControlledCell.Value);
                 Session.World.Floor.ApplyContact(player);
             }
         }
@@ -255,10 +321,32 @@ namespace SlimesRevenge
                 return;
             }
 
-            // Player turn start: digestion, corpse aging, then the slime's own statuses.
-            if (player != null && player.Digestion.Tick(player.Volume) && player is Slime)
+            // Player turn start: statuses (including Digesting) share one log group; corpse aging sits between.
+            if (player != null && player.IsAlive)
             {
-                player.RefreshVolumeStatuses();
+                ActionLog.BeginKey(TextKey.LogTurn, ActionLogPart.Creature(player.Kind));
+                try
+                {
+                    if (!pauseCorpseAging)
+                    {
+                        Session?.World.Floor.Tick();
+                    }
+
+                    pauseCorpseAging = false;
+                    player.TickStatuses();
+                }
+                finally
+                {
+                    ActionLog.End(discardIfEmpty: true);
+                }
+
+                RefreshFloorViews();
+                if (!player.IsAlive)
+                {
+                    HandlePlayerDefeated();
+                }
+
+                return;
             }
 
             if (!pauseCorpseAging)
@@ -267,12 +355,7 @@ namespace SlimesRevenge
             }
 
             pauseCorpseAging = false;
-            TickStatus(player, dropIfDead: false);
             RefreshFloorViews();
-            if (player != null && !player.IsAlive)
-            {
-                HandlePlayerDefeated();
-            }
         }
 
         private void TickStatus(Creature creature, bool dropIfDead)
@@ -282,7 +365,16 @@ namespace SlimesRevenge
                 return;
             }
 
-            creature.TickStatuses();
+            ActionLog.BeginKey(TextKey.LogTurn, ActionLogPart.Creature(creature.Kind));
+            try
+            {
+                creature.TickStatuses();
+            }
+            finally
+            {
+                ActionLog.End(discardIfEmpty: true);
+            }
+
             if (creature.IsAlive)
             {
                 return;
@@ -305,9 +397,11 @@ namespace SlimesRevenge
             player?.Die();
             PlayerDefeated?.Invoke();
 
-            if (GameSettings.Mode == GameMode.Softcore
+            if (
+                GameSettings.Mode == GameMode.Softcore
                 && TrySoftcoreContinue != null
-                && TrySoftcoreContinue())
+                && TrySoftcoreContinue()
+            )
             {
                 IsGameOver = false;
                 return;
@@ -425,14 +519,25 @@ namespace SlimesRevenge
 
         private bool Act(Func<GameSession, bool> attempt)
         {
-            if (IsGameOver || Session == null || !attempt(Session))
+            if (IsGameOver || Session == null)
             {
                 return false;
             }
 
-            if (player != null)
+            if (player != null && !player.IsAlive)
             {
-                player.PlaceOn(Session.PlayerCell);
+                HandlePlayerDefeated();
+                return false;
+            }
+
+            if (!attempt(Session))
+            {
+                return false;
+            }
+
+            if (player != null && Session.ControlledCell != null)
+            {
+                player.PlaceOn(Session.ControlledCell.Value);
             }
 
             if (player != null && !player.IsAlive)

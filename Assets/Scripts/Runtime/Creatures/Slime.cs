@@ -6,12 +6,23 @@ namespace SlimesRevenge
     {
         public override CreatureKind Kind => CreatureKind.Slime;
 
-        [SerializeField] private Sprite waterSprite;
-        [SerializeField] private Sprite oilSprite;
-        [SerializeField] private Sprite poisonSprite;
-        [SerializeField] private Sprite acidSprite;
-        [SerializeField] private Sprite bloodSprite;
-        [SerializeField] private Sprite lavaSprite;
+        [SerializeField]
+        private Sprite waterSprite;
+
+        [SerializeField]
+        private Sprite oilSprite;
+
+        [SerializeField]
+        private Sprite poisonSprite;
+
+        [SerializeField]
+        private Sprite acidSprite;
+
+        [SerializeField]
+        private Sprite bloodSprite;
+
+        [SerializeField]
+        private Sprite lavaSprite;
 
         private SpriteRenderer body;
 
@@ -24,7 +35,11 @@ namespace SlimesRevenge
         {
             body = GetComponent<SpriteRenderer>();
             SetMaxHitPoints(0);
-            if (Volume.UnitCount == 0)
+            // Duel loadout is applied by WorldView.Start; campaign uses FillStarting.
+            if (
+                Volume.UnitCount == 0
+                && !(RunConfig.TryPeek(out var run) && run.Kind == RunKind.Duel)
+            )
             {
                 FillStarting(Volume);
             }

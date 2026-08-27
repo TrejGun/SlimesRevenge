@@ -19,8 +19,6 @@ namespace SlimesRevenge
         public const int DefaultDuration = 3;
 
         protected OverTime(int duration = DefaultDuration)
-            : base(duration)
-        {
-        }
+            : base(duration) { }
     }
 }

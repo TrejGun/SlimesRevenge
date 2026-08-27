@@ -4,8 +4,10 @@ using Unity.Behavior;
 namespace SlimesRevenge
 {
     /// <summary>
-    /// Turn decide. Prefer the no-arg form when <see cref="CreatureTurnContext"/> is already pushed
+    /// Turn decide via Unity Behavior personality graphs (<see cref="CreaturePolicyGraphs"/>).
+    /// Prefer the no-arg form when <see cref="CreatureTurnContext"/> is already pushed
     /// (see <see cref="Creature.TakeTurn"/>). The overload pushes context for tests / callers.
+    /// Hunt fear/hate is applied after via <see cref="CreatureHunt.Redirect"/>.
     /// </summary>
     public static class CreatureBrain
     {
@@ -16,6 +18,7 @@ namespace SlimesRevenge
                 return CreatureIntent.Idle;
             }
 
+            CreatureTurnContext.SetActor(self);
             var graph = CreaturePolicyGraphs.For(self.Personality);
             CreaturePolicyGraphs.BindOwner(graph, self.gameObject);
             graph.End();
@@ -30,7 +33,8 @@ namespace SlimesRevenge
             Creature player,
             GameSession session,
             IRng rng,
-            IReadOnlyList<Creature> others = null)
+            IReadOnlyList<Creature> others = null
+        )
         {
             CreatureTurnContext.Push(session, player, rng, others);
             try

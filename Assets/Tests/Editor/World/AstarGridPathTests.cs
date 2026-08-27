@@ -90,12 +90,16 @@ namespace SlimesRevenge.Tests
             var goal = new Vector2Int(7, 4);
             Assert.AreEqual(
                 GridStep.Chebyshev(start, lavaDoor) + GridStep.Chebyshev(lavaDoor, goal),
-                GridStep.Chebyshev(start, waterDoor) + GridStep.Chebyshev(waterDoor, goal));
+                GridStep.Chebyshev(start, waterDoor) + GridStep.Chebyshev(waterDoor, goal)
+            );
             bool Blocked(Vector2Int cell) => world.IsWall(cell);
             var path = GridPath.Find(world, start, new[] { goal }, Blocked);
 
             Assert.IsNotNull(path);
-            Assert.IsTrue(path.Contains(waterDoor), "Lower FloorPriority (water) must win over lava.");
+            Assert.IsTrue(
+                path.Contains(waterDoor),
+                "Lower FloorPriority (water) must win over lava."
+            );
             Assert.IsFalse(path.Contains(lavaDoor));
         }
 
@@ -131,8 +135,14 @@ namespace SlimesRevenge.Tests
             try
             {
                 Assert.AreEqual(0, new Poison().FloorPriorityFor(poisonous));
-                Assert.AreEqual(Substance.DamageOverTimeFloorPriority, new Poison().FloorPriorityFor(null));
-                Assert.AreEqual(Substance.DamageOverTimeFloorPriority, new Lava().FloorPriorityFor(poisonous));
+                Assert.AreEqual(
+                    Substance.DamageOverTimeFloorPriority,
+                    new Poison().FloorPriorityFor(null)
+                );
+                Assert.AreEqual(
+                    Substance.DamageOverTimeFloorPriority,
+                    new Lava().FloorPriorityFor(poisonous)
+                );
             }
             finally
             {
@@ -152,7 +162,10 @@ namespace SlimesRevenge.Tests
 
             try
             {
-                Assert.AreEqual(Substance.DamageOverTimeFloorPriority, new Water().FloorPriorityFor(cat));
+                Assert.AreEqual(
+                    Substance.DamageOverTimeFloorPriority,
+                    new Water().FloorPriorityFor(cat)
+                );
                 Assert.AreEqual(new Lava().FloorPriority, new Water().FloorPriorityFor(cat));
                 Assert.AreEqual(Substance.MildFloorPriority, new Water().FloorPriorityFor(null));
                 Assert.AreEqual(Substance.MildFloorPriority, new Water().FloorPriority);
@@ -169,7 +182,9 @@ namespace SlimesRevenge.Tests
             var world = World.CreateGrass(12);
             var start = new Vector2Int(0, 0);
             var goal = new Vector2Int(10, 0);
-            Assert.IsTrue(GridPath.TryWalk(world, start, new[] { goal }, _ => false, maxStep: 2, out var dest));
+            Assert.IsTrue(
+                GridPath.TryWalk(world, start, new[] { goal }, _ => false, maxStep: 2, out var dest)
+            );
             Assert.AreEqual(2, GridStep.Chebyshev(start, dest));
         }
 
@@ -182,7 +197,12 @@ namespace SlimesRevenge.Tests
                 world.SetTerrain(new Vector2Int(2, y), TerrainType.Wall);
             }
 
-            var path = GridPath.Find(world, new Vector2Int(0, 3), new[] { new Vector2Int(4, 3) }, world.IsWall);
+            var path = GridPath.Find(
+                world,
+                new Vector2Int(0, 3),
+                new[] { new Vector2Int(4, 3) },
+                world.IsWall
+            );
             Assert.IsNull(path);
         }
     }

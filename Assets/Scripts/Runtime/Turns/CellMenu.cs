@@ -6,22 +6,27 @@ using UnityEngine.UI;
 
 namespace SlimesRevenge
 {
-    public sealed class CombatMenu : MonoBehaviour
+    public sealed class CellMenu : MonoBehaviour
     {
         private const float ButtonHeight = 48f;
-        private const float ButtonWidth = 240f;
+        private const float ButtonWidth = 280f;
         private const float Gap = 8f;
+
+        private static readonly IMenuEntry[] RootEntries =
+        {
+            new AttackEntry(),
+            new MessEntry(),
+            new CollectEntry(),
+            new DevourEntry(),
+            new InfoEntry(),
+        };
 
         private Canvas canvas;
         private RectTransform panel;
         private Font font;
         private bool suppressWorldInput;
-        private Action<Substance> onPick;
-        private Action onMess;
-        private Action onCollect;
-        private Action<int> onDevour;
-        private IReadOnlyList<Substance> kinds;
-        private IReadOnlyList<Creature> corpses;
+        private CellMenuContext context;
+        private readonly Stack<Action> levels = new Stack<Action>();
 
         public bool BlocksInput => canvas != null && canvas.enabled || suppressWorldInput;
 
@@ -56,35 +61,12 @@ namespace SlimesRevenge
             }
         }
 
-        public void OpenActions(IReadOnlyList<Substance> substances, Action<Substance> onSubstance)
+        public void Open(CellMenuContext menuContext)
         {
             EnsureUi();
-            kinds = substances;
-            onPick = onSubstance;
-            onMess = null;
-            onCollect = null;
-            onDevour = null;
-            corpses = null;
-            ShowActions();
-        }
-
-        public void OpenSelf(
-            IReadOnlyList<Substance> substances,
-            bool canMess,
-            bool canCollect,
-            IReadOnlyList<Creature> floorCorpses,
-            Action<Substance> mess,
-            Action collect,
-            Action<int> devour)
-        {
-            EnsureUi();
-            kinds = substances;
-            onPick = mess;
-            onMess = canMess ? () => ShowSubstances() : (Action)null;
-            onCollect = canCollect ? collect : null;
-            onDevour = devour;
-            corpses = floorCorpses;
-            ShowSelf();
+            context = menuContext;
+            levels.Clear();
+            Push(RenderRoot);
         }
 
         public void Close()
@@ -99,119 +81,199 @@ namespace SlimesRevenge
                 ClearPanel();
             }
 
-            onPick = null;
-            onMess = null;
-            onCollect = null;
-            onDevour = null;
-            kinds = null;
-            corpses = null;
+            levels.Clear();
+            context = null;
         }
 
-        private void ShowActions()
+        /// <summary>Close after a successful action; suppress world input until the pointer is released.</summary>
+        public void CompleteAction()
         {
-            ClearPanel();
-            canvas.enabled = true;
-            AddButton(I18n.Get(TextKey.CombatAttack), ShowSubstances);
-            Layout(1);
+            suppressWorldInput = true;
+            Close();
         }
 
-        private void ShowSelf()
+        public void ShowSubstancePicker(Action<Substance> onPick)
         {
-            ClearPanel();
-            canvas.enabled = true;
-            var count = 0;
-            if (onMess != null)
+            if (context?.Actor == null || !context.Actor.Volume.CanSpend)
             {
-                AddButton(I18n.Get(TextKey.CombatMess), onMess);
-                count++;
+                return;
             }
 
-            if (onCollect != null)
+            var kinds = context.Actor.Volume.UniqueKinds();
+            if (kinds.Count == 0)
             {
-                var collect = onCollect;
-                AddButton(I18n.Get(TextKey.CombatCollect), () =>
+                return;
+            }
+
+            Push(() =>
+            {
+                for (var i = 0; i < kinds.Count; i++)
                 {
-                    suppressWorldInput = true;
-                    Close();
-                    collect();
-                });
-                count++;
-            }
+                    var chosen = kinds[i];
+                    AddButton(
+                        chosen.Label,
+                        () =>
+                        {
+                            suppressWorldInput = true;
+                            onPick?.Invoke(chosen);
+                        },
+                        chosen.Color
+                    );
+                }
 
-            if (onDevour != null && corpses != null && corpses.Count > 0 && !BusyDevourBlocked())
+                AddBackButton();
+                Layout(kinds.Count + 1);
+            });
+        }
+
+        public void ShowCorpsePicker(CellMenuContext menuContext)
+        {
+            Push(() =>
             {
-                AddButton(I18n.Get(TextKey.CombatDevour), ShowCorpses);
-                count++;
+                var corpses = menuContext.Corpses;
+                for (var i = 0; i < corpses.Count; i++)
+                {
+                    var index = i;
+                    var corpse = corpses[i];
+                    var edible = Digesting.CanBegin(menuContext.Actor?.Volume, corpse);
+                    AddButton(
+                        CorpseChoiceLabel(corpse),
+                        () => DevourEntry.TryDevourAt(this, menuContext, index),
+                        enabled: edible
+                    );
+                }
+
+                AddBackButton();
+                Layout(corpses.Count + 1);
+            });
+        }
+
+        public void ShowInspectablePicker(IReadOnlyList<CellInspectable> inspectables)
+        {
+            Push(() =>
+            {
+                for (var i = 0; i < inspectables.Count; i++)
+                {
+                    var target = inspectables[i];
+                    AddButton(target.PickerLabel, () => ShowInfoPanel(target));
+                }
+
+                AddBackButton();
+                Layout(inspectables.Count + 1);
+            });
+        }
+
+        public void ShowInfoPanel(CellInspectable target)
+        {
+            var host = PopupHost.Ensure();
+            if (target == null)
+            {
+                return;
             }
 
-            if (count == 0)
+            if (target.Puddle != null)
+            {
+                host.Push(new SubstanceCard(target.Puddle.Substance));
+                return;
+            }
+
+            if (target.Creature != null)
+            {
+                host.Push(new CreatureCard(target.Creature));
+            }
+        }
+
+        /// <summary>
+        /// Menu line: name · filled volume · remaining/max decay turns.
+        /// </summary>
+        public static string CorpseChoiceLabel(Creature corpse)
+        {
+            if (corpse == null)
+            {
+                return string.Empty;
+            }
+
+            var units = corpse.Volume != null ? corpse.Volume.UnitCount : 0;
+            var maxTurns = Mathf.Max(1, corpse.MaxHitPoints);
+            return CardUi.SafeFormat(
+                TextKey.MenuCorpseChoice,
+                "{0} · {1} vol · {2}/{3} turns",
+                CardUi.CreatureName(corpse.Kind),
+                units,
+                corpse.DecayTurnsLeft,
+                maxTurns
+            );
+        }
+
+        private void RenderRoot()
+        {
+            if (context == null)
             {
                 Close();
                 return;
             }
 
-            Layout(count);
-        }
-
-        private bool BusyDevourBlocked()
-        {
-            return false;
-        }
-
-        private void ShowCorpses()
-        {
-            ClearPanel();
-            canvas.enabled = true;
-            if (corpses == null)
+            var visible = 0;
+            for (var i = 0; i < RootEntries.Length; i++)
             {
-                return;
-            }
-
-            for (var i = 0; i < corpses.Count; i++)
-            {
-                var index = i;
-                var corpse = corpses[i];
-                AddButton($"{corpse.Kind} ({corpse.Volume.UnitCount})", () =>
+                var entry = RootEntries[i];
+                if (!entry.IsVisible(context))
                 {
-                    var devour = onDevour;
-                    suppressWorldInput = true;
-                    Close();
-                    devour?.Invoke(index);
-                });
+                    continue;
+                }
+
+                var captured = entry;
+                AddButton(
+                    captured.Label,
+                    () => captured.Activate(this, context),
+                    enabled: captured.IsEnabled(context)
+                );
+                visible++;
             }
 
-            Layout(corpses.Count);
-        }
-
-        private void ShowSubstances()
-        {
-            ClearPanel();
-            canvas.enabled = true;
-            if (kinds == null)
+            if (visible == 0)
             {
+                Close();
                 return;
             }
 
-            foreach (var substance in kinds)
-            {
-                var chosen = substance;
-                AddButton(chosen.Label, () => Pick(chosen), chosen.Color);
-            }
-
-            Layout(kinds.Count);
+            Layout(visible);
         }
 
-        private void Pick(Substance substance)
+        private void Push(Action render)
         {
-            var pick = onPick;
-            suppressWorldInput = true;
-            Close();
-            pick?.Invoke(substance);
+            levels.Push(render);
+            Refresh();
+        }
+
+        private void Back()
+        {
+            if (levels.Count <= 1)
+            {
+                Cancel();
+                return;
+            }
+
+            levels.Pop();
+            Refresh();
+        }
+
+        private void Refresh()
+        {
+            if (levels.Count == 0)
+            {
+                Close();
+                return;
+            }
+
+            ClearPanel();
+            canvas.enabled = true;
+            levels.Peek().Invoke();
         }
 
         private void BuildCanvas()
         {
-            var root = new GameObject("CombatMenu");
+            var root = new GameObject("CellMenu");
             canvas = root.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 200;
@@ -240,23 +302,32 @@ namespace SlimesRevenge
             panelImage.raycastTarget = true;
         }
 
-        private void AddButton(string label, Action action, Color? swatch = null)
+        private void AddButton(
+            string label,
+            Action action,
+            Color? swatch = null,
+            bool enabled = true
+        )
         {
             var row = new GameObject(label).AddComponent<RectTransform>();
             row.SetParent(panel, false);
             row.sizeDelta = new Vector2(ButtonWidth, ButtonHeight);
             var image = row.gameObject.AddComponent<Image>();
-            image.color = new Color32(48, 64, 40, 255);
+            image.color = enabled ? new Color32(48, 64, 40, 255) : new Color32(36, 40, 32, 255);
             var button = row.gameObject.AddComponent<Button>();
             button.targetGraphic = image;
-            button.onClick.AddListener(() => action());
+            button.interactable = enabled;
+            if (enabled)
+            {
+                button.onClick.AddListener(() => action());
+            }
 
             var text = new GameObject("Label").AddComponent<Text>();
             text.transform.SetParent(row, false);
             text.font = font;
             text.fontSize = 22;
             text.alignment = TextAnchor.MiddleCenter;
-            text.color = Color.white;
+            text.color = enabled ? Color.white : new Color(1f, 1f, 1f, 0.4f);
             text.text = label;
             text.raycastTarget = false;
             var textRect = text.rectTransform;
@@ -277,6 +348,11 @@ namespace SlimesRevenge
             chipRect.anchoredPosition = new Vector2(24f, 0f);
             chipRect.sizeDelta = new Vector2(22f, 22f);
             chip.raycastTarget = false;
+        }
+
+        private void AddBackButton()
+        {
+            AddButton(CardUi.Safe(TextKey.UiBack, "Back"), Back);
         }
 
         private void Layout(int count)
@@ -305,7 +381,14 @@ namespace SlimesRevenge
             {
                 var child = panel.GetChild(i).gameObject;
                 child.transform.SetParent(null, false);
-                Destroy(child);
+                if (Application.isPlaying)
+                {
+                    Destroy(child);
+                }
+                else
+                {
+                    DestroyImmediate(child);
+                }
             }
         }
 

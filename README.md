@@ -17,6 +17,15 @@ Override the editor path with `UNITY_EDITOR` if needed.
 
 This machine currently has the editor without mobile modules, and batchmode needs an active Unity license. CI is the path that actually produces Android/iOS artifacts until those are installed locally.
 
+## C# formatting (CSharpier)
+
+```bash
+dotnet tool restore
+./scripts/format.sh          # format Assets/Scripts + Assets/Tests
+./scripts/format.sh check    # fail if unformatted
+git config core.hooksPath .githooks   # once per clone: format staged .cs on commit
+```
+
 ## CI (GitHub Actions)
 
 Default branch is **`dev`** (day-to-day work). **`main`** is for releases.

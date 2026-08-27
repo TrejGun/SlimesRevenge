@@ -53,21 +53,101 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Devour_TransfersOneUnitPerTurn()
+        public void Devour_TransfersBulkOnlyOnFinalPulse()
         {
             var slime = Spawn<Slime>(Vector2Int.zero);
             slime.Volume.Clear();
+            slime.Volume.Add(new Water());
+            slime.Volume.Add(new Water());
             slime.RefreshVolumeStatuses();
             var cat = SpawnCorpse<Cat>(Vector2Int.zero);
             Assert.AreEqual(2, cat.Volume.UnitCount);
-
-            Assert.IsTrue(slime.Digestion.TryBegin(cat));
-            Assert.IsTrue(slime.Digestion.Tick(slime.Volume));
-            Assert.AreEqual(1, slime.Volume.UnitCount);
-            Assert.AreEqual(1, cat.Volume.UnitCount);
-            Assert.IsTrue(slime.Digestion.Tick(slime.Volume));
             Assert.AreEqual(2, slime.Volume.UnitCount);
-            Assert.IsFalse(slime.Digestion.IsBusy);
+
+            Assert.IsTrue(Digesting.CanBegin(slime.Volume, cat));
+            Assert.IsTrue(slime.AddStatus(new Digesting(cat)));
+            Assert.AreEqual(2, slime.FindStatus<Digesting>().Remaining);
+
+            slime.TickStatuses();
+            Assert.AreEqual(2, slime.Volume.UnitCount);
+            Assert.IsTrue(slime.IsDigesting);
+            Assert.AreEqual(1, slime.FindStatus<Digesting>().Remaining);
+            Assert.AreEqual(2, cat.Volume.UnitCount);
+
+            slime.TickStatuses();
+            Assert.AreEqual(4, slime.Volume.UnitCount);
+            Assert.IsFalse(slime.IsDigesting);
+        }
+
+        [Test]
+        public void StackedCorpses_OnlyTopIsVisible_MenuListsAll()
+        {
+            var floor = new Floor();
+            var cell = Vector2Int.zero;
+            var rat = SpawnCorpseWithRenderer<Rat>(cell);
+            var cat = SpawnCorpseWithRenderer<Cat>(cell);
+            floor.AddCorpse(rat);
+            floor.AddCorpse(cat);
+
+            var stack = floor.GetCorpses(cell);
+            Assert.AreEqual(2, stack.Count);
+            Assert.IsFalse(rat.GetComponent<SpriteRenderer>().enabled);
+            Assert.IsTrue(cat.GetComponent<SpriteRenderer>().enabled);
+
+            Assert.IsTrue(floor.TryTakeCorpse(cell, 1, out var taken));
+            Assert.AreSame(cat, taken);
+            Assert.IsFalse(cat.GetComponent<SpriteRenderer>().enabled);
+            Assert.IsTrue(rat.GetComponent<SpriteRenderer>().enabled);
+            Assert.AreEqual(1, floor.GetCorpses(cell).Count);
+        }
+
+        private T SpawnCorpseWithRenderer<T>(Vector2Int cell)
+            where T : Creature
+        {
+            var creature = SpawnCorpse<T>(cell);
+            if (creature.GetComponent<SpriteRenderer>() == null)
+            {
+                var renderer = creature.gameObject.AddComponent<SpriteRenderer>();
+                renderer.enabled = true;
+            }
+
+            return creature;
+        }
+
+        [Test]
+        public void Digestion_CannotBegin_WhenSlimeSmallerThanCorpse()
+        {
+            var slime = Spawn<Slime>(Vector2Int.zero);
+            slime.Volume.Clear();
+            slime.Volume.Add(new Water());
+            slime.Volume.Add(new Water());
+            slime.RefreshVolumeStatuses();
+            var dog = SpawnCorpse<Dog>(Vector2Int.zero);
+            Assert.AreEqual(3, dog.Volume.UnitCount);
+            Assert.AreEqual(2, slime.Volume.UnitCount);
+
+            Assert.IsFalse(Digesting.CanBegin(slime.Volume, dog));
+            Assert.IsFalse(slime.IsDigesting);
+        }
+
+        [Test]
+        public void Digestion_CanBegin_WhenSlimeVolumeEqualsCorpse()
+        {
+            var slime = Spawn<Slime>(Vector2Int.zero);
+            slime.Volume.Clear();
+            for (var i = 0; i < 3; i++)
+            {
+                slime.Volume.Add(new Water());
+            }
+
+            slime.RefreshVolumeStatuses();
+            var dog = SpawnCorpse<Dog>(Vector2Int.zero);
+            Assert.AreEqual(3, dog.Volume.UnitCount);
+            Assert.AreEqual(3, slime.Volume.UnitCount);
+
+            Assert.IsTrue(Digesting.CanBegin(slime.Volume, dog));
+            Assert.IsTrue(slime.AddStatus(new Digesting(dog)));
+            Assert.IsTrue(slime.IsDigesting);
         }
 
         [Test]
@@ -95,14 +175,16 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(0, floor.GetCorpses(cell).Count);
         }
 
-        private T SpawnCorpse<T>(Vector2Int cell) where T : Creature
+        private T SpawnCorpse<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = Spawn<T>(cell);
             creature.BecomeCorpse();
             return creature;
         }
 
-        private T Spawn<T>(Vector2Int cell) where T : Creature
+        private T Spawn<T>(Vector2Int cell)
+            where T : Creature
         {
             var creature = SpawnObject(typeof(T).Name).AddComponent<T>();
             creature.PlaceOn(cell);
@@ -119,6 +201,10 @@ namespace SlimesRevenge.Tests
                 else if (creature is Cat)
                 {
                     Cat.FillStarting(creature.Volume);
+                }
+                else if (creature is Dog)
+                {
+                    Dog.FillStarting(creature.Volume);
                 }
             }
 

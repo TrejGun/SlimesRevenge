@@ -42,6 +42,9 @@ namespace SlimesRevenge
 
         public abstract string Label { get; }
 
+        /// <summary>UI icon (placeholder blob from <see cref="IconCatalog"/>).</summary>
+        public virtual Sprite Icon => IconCatalog.Substance(this);
+
         /// <summary>Slime body look when this substance wins plurality in the volume.</summary>
         public abstract SlimeLook Look { get; }
 
@@ -69,10 +72,11 @@ namespace SlimesRevenge
         public virtual bool DominanceBlocks(StatusEffect incoming) => false;
 
         /// <summary>
-        /// Passive status provided by this substance while it is volume-dominant.
+        /// Passive statuses provided while this substance is volume-dominant (for lookups).
         /// Creature looks up via this — it does not name Fireproof / Flammable / etc.
         /// </summary>
-        public virtual T FindDominanceStatus<T>() where T : StatusEffect
+        public virtual T FindDominanceStatus<T>()
+            where T : StatusEffect
         {
             if (typeof(T) == typeof(Retaliation))
             {
@@ -80,6 +84,64 @@ namespace SlimesRevenge
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Snapshot hit-reactions that must run even if dominance clears mid-strike.
+        /// </summary>
+        public virtual void CaptureSurvivedHitReactions(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            if (sink == null)
+            {
+                return;
+            }
+
+            var passives = new System.Collections.Generic.List<StatusEffect>(4);
+            CollectDominancePassives(passives);
+            for (var i = 0; i < passives.Count; i++)
+            {
+                if (passives[i].CapturesSurvivedHitReaction)
+                {
+                    sink.Add(passives[i]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Passive dominance traits to show when this substance becomes dominant (log / UI).
+        /// </summary>
+        public virtual void CollectDominancePassives(
+            System.Collections.Generic.IList<StatusEffect> sink
+        )
+        {
+            if (sink == null)
+            {
+                return;
+            }
+
+            var retaliation = FindDominanceStatus<Retaliation>();
+            if (retaliation != null)
+            {
+                sink.Add(retaliation);
+            }
+        }
+
+        /// <summary>Write dominance-passive gains into an open action-log group.</summary>
+        public void LogDominanceGains(Creature owner)
+        {
+            if (!ActionLog.HasOpenGroup || owner == null)
+            {
+                return;
+            }
+
+            var passives = new System.Collections.Generic.List<StatusEffect>(4);
+            CollectDominancePassives(passives);
+            for (var i = 0; i < passives.Count; i++)
+            {
+                ActionLog.DetailGains(owner.Kind, passives[i]);
+            }
         }
 
         /// <summary>
@@ -94,20 +156,28 @@ namespace SlimesRevenge
             }
 
             OnApply(target);
+            target.NotifyReceivedSubstance(this);
         }
 
         /// <summary>Contact / strike residue effect on the target.</summary>
-        protected virtual void OnApply(Creature target)
-        {
-        }
+        protected virtual void OnApply(Creature target) { }
+
+        /// <summary>
+        /// Statuses this substance would apply via <see cref="OnApply"/> (for UI cards).
+        /// Must not mutate the world — preview instances only.
+        /// </summary>
+        public virtual void CollectApplyPreview(
+            System.Collections.Generic.IList<StatusEffect> sink
+        ) { }
 
         /// <summary>
         /// Volume dominance sync: edit the slime status <paramref name="queue"/> in place.
         /// Passive bonuses come from <see cref="FindDominanceStatus{T}"/> / <see cref="DominanceBlocks"/>.
         /// Default: queue unchanged.
         /// </summary>
-        public virtual void ApplyDominance(Creature slime, System.Collections.Generic.IList<StatusEffect> queue)
-        {
-        }
+        public virtual void ApplyDominance(
+            Creature slime,
+            System.Collections.Generic.IList<StatusEffect> queue
+        ) { }
     }
 }
