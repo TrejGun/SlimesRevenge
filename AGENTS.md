@@ -16,14 +16,14 @@ Assets/
       Turns/              # GameSession, TurnManager, Combat, cell menu
       Volume/             # Substances, Volume, dominance, floor puddles
       World/              # Grid, terrain, GridPath (A* Pathfinding Project), Floor
-    Editor/               # Build helpers (Android / iOS)
+    Editor/               # Build / play helpers (MobileBuilder, RunConfigPlayModeBridge)
   Tests/Editor/           # EditMode tests, mirrored by feature
   AstarPathfindingProject/# Aron Granberg A* Pathfinding Project (Free)
-  Scenes/                 # Main (title), Game
+  Scenes/                 # Splash (bootstrap) → Main (menu) → Game
   Localization/Resources/ # en / ru string tables
   Resources/              # Runtime-loaded sprites (animals, status icons)
 docs/                     # Design / architecture notes (human + agent)
-scripts/                  # Local build / asset helpers
+scripts/                  # play.sh, stop.sh, build.sh, format.sh
 .github/workflows/        # GameCI EditMode tests + mobile builds
 .cursor/rules/            # Cursor agent rules (see below)
 ```
@@ -74,6 +74,38 @@ Default local editor path on this machine:
 ```
 
 Override with `UNITY_EDITOR` for builds (`scripts/build.sh`).
+
+## Play in Editor (agents)
+
+**Always** use these scripts. Do **not** invoke Unity `-executeMethod` by hand or scrape `Logs/play-*.log` to decide if Play Mode is up — `play.sh` already waits for readiness and returns an exit code.
+
+```bash
+./scripts/play.sh              # Splash → Main menu
+./scripts/play.sh --duel       # Game duel (Rat, default water loadout)
+./scripts/play.sh --campaign   # Game campaign (10×10, full cast)
+./scripts/stop.sh              # quit this project's Unity Editor (finds by -projectPath; no PID file)
+```
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Ready — stdout contains `READY: … ([PlayReady] …)`. Unity stays running in the background. |
+| non-zero | Fail / timeout / wrong mode — see the `FAIL:` line; details in `Logs/play-*.log`. |
+
+`stop.sh` exit codes:
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Stopped (or already not running) — stdout `STOPPED: …` |
+| non-zero | Still running after TERM/KILL — stdout/stderr `FAIL: …` |
+
+- Ready markers (written by the game/editor, consumed only by `play.sh`): `[PlayReady] Splash`, `[PlayReady] Duel 15x5`, `[PlayReady] Campaign 10x10`.
+- `play.sh` stops any prior editor for this project, clears `Temp/__Backupscenes` + `Assets/_Recovery`, then launches.
+- Optional: `PLAY_READY_MAX_SEC` (default `300`), `UNITY_EDITOR`.
+- `RunConfig` for `--duel` / `--campaign` survives play-mode domain reload via Editor `SessionState` (`RunConfigPlayModeBridge`) — **no disk files**.
+
+Agent rules:
+- After `./scripts/play.sh …`, trust exit `0` + the `READY:` line. Do **not** poll Unity logs yourself.
+- After `./scripts/stop.sh`, trust exit `0` + `STOPPED:`. Do **not** `pgrep` / scrape logs to double-check.
 
 ## Setup
 

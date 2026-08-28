@@ -1,78 +1,56 @@
 # Slime's Revenge
 
-Mobile Unity game (iOS + Android). After the splash and title screen the app loads a 10×10 grass world with a slime in the center.
+Mobile Unity game (iOS + Android). Bundle id: `com.trejgun.slimesrevenge`.  
+Unity **6000.5.9f1**. Landscape.
 
-Unity **6000.5.9f1**. Bundle id: `com.trejgun.slimesrevenge`. Portrait.
+Flow: `Splash` → `Main` (menu) ↔ `Game` (campaign or duel).
+
+## Play in Editor
+
+```bash
+./scripts/play.sh              # Splash → Main; exits 0 when ready
+./scripts/play.sh --duel       # default duel; exits 0 when arena is up
+./scripts/play.sh --campaign   # default campaign; exits 0 when arena is up
+./scripts/stop.sh              # quit editor; exits 0 when gone
+```
+
+`play.sh` starts Unity in the background, waits for a `[PlayReady]` line in `Logs/play-*.log`, then exits (0 = ready, non-zero = fail/timeout). Trust the exit code — do not scrape the log yourself. Override wait with `PLAY_READY_MAX_SEC` (default 300).
+
+`stop.sh` finds Unity by `-projectPath` (no PID file, no logs) and exits 0 when it is gone.
 
 ## Local build
-
-Install Unity 6000.5.9f1 with the **Android** and/or **iOS** modules, activate a license in Unity Hub, then:
 
 ```bash
 ./scripts/build.sh Android   # -> Build/Android/SlimesRevenge.apk
 ./scripts/build.sh iOS       # -> Build/iOS (Xcode project)
 ```
 
-Override the editor path with `UNITY_EDITOR` if needed.
-
-This machine currently has the editor without mobile modules, and batchmode needs an active Unity license. CI is the path that actually produces Android/iOS artifacts until those are installed locally.
-
-## C# formatting (CSharpier)
+## C# formatting
 
 ```bash
 dotnet tool restore
 ./scripts/format.sh          # format Assets/Scripts + Assets/Tests
-./scripts/format.sh check    # fail if unformatted
-git config core.hooksPath .githooks   # once per clone: format staged .cs on commit
+./scripts/format.sh check    # CI-style check
+git config core.hooksPath .githooks   # once per clone
 ```
 
-## CI (GitHub Actions)
+## CI
 
-Default branch is **`dev`** (day-to-day work). **`main`** is for releases.
-
-Two workflows ([GameCI](https://game.ci/docs/github/getting-started)):
+Default branch: **`dev`**. Releases: **`main`**.
 
 | Workflow | When | What |
 | --- | --- | --- |
-| [`test.yml`](.github/workflows/test.yml) | Push to `dev`, PR → `dev`/`main`, manual | EditMode tests only |
-| [`build.yml`](.github/workflows/build.yml) | Push to `main`, manual on `main` | Tests, then Android + iOS |
+| [`test.yml`](.github/workflows/test.yml) | Push/PR to `dev`/`main` | EditMode tests |
+| [`build.yml`](.github/workflows/build.yml) | Push/`workflow_dispatch` on `main` | Tests + Android + iOS |
 
-EditMode steps live once in [`unity-editmode.yml`](.github/workflows/unity-editmode.yml) (reusable `workflow_call`); both workflows call it with `secrets: inherit`.
+Secrets: `UNITY_LICENSE`, `UNITY_EMAIL`, `UNITY_PASSWORD` — see [GameCI activation](https://game.ci/docs/github/activation).
 
-A new commit on the same branch **cancels** the previous in-progress run for that workflow.
+## Layout
 
-Feature branches: open a PR into `dev` (or `main`) — only `Test` runs.
-
-Add repository secrets (Personal license):
-
-1. `UNITY_LICENSE` — contents of local `Unity_lic.ulf` (already set from this machine).
-2. `UNITY_EMAIL` — Unity account email (already set).
-3. `UNITY_PASSWORD` — Unity account password (already set).
-
-One-shot renewal helper: [`.github/workflows/activation.yml`](.github/workflows/activation.yml) (workflow_dispatch → `.alf` artifact → https://license.unity3d.com → new `.ulf`).
-
-See [GameCI activation](https://game.ci/docs/github/activation).
-
-Artifacts (only from `Build` on `main`):
-
-- `slimesrevenge-Android` — debug-signed APK (installable on a device)
-- `slimesrevenge-iOS` — exported Xcode project (sign and archive on a Mac for TestFlight/App Store)
-
-## Project layout
-
-- `Assets/Scenes/Main.unity` — title after splash, then loads `Game`
-- `Assets/Scenes/Game.unity` — 10×10 grass world, slime in the center, rat/cat/dog beside it
-- `Assets/Art` — characters, UI, puddles, per-substance slime sheets (`Slimes/`), animal walk sheets (`Animals/`)
-- `Assets/ElvGames` — Fantasy Dreamland / Reborn tilesets (ground and decor)
-- `Assets/Localization/Resources` — English and Russian string tables (`Resources.Load`, no Addressables)
-- `Assets/Scripts/Runtime` — gameplay, one asmdef, grouped by feature:
-  - `App` — title hold and scene load
-  - `World` — grid, terrain, `WorldView`, Chebyshev pathfinding via built-in NavMesh (`com.unity.modules.ai`)
-  - `Creatures` — `Creature` with vision, speed, and a stored behavior pattern; combat switches acting to aggressive
-  - `Volume` — units and substances
-  - `Status` — timed effects on a creature (permanent = duration never ends)
-  - `Turns` — `GameSession`, `TurnManager`, input, combat
-  - `Behavior` — turn-based mob patterns (`Cowardly`, `Passive`, `Aggressive`); Unity Behavior graph nodes in `Actions/` and `Conditions/`
-  - `Localization` — `I18n` + `TextKey`
-- `Assets/Scripts/Editor` — `Build/` (Android / iOS / OSX)
-- `Assets/Tests/Editor` — EditMode tests, mirrored by feature
+- `Assets/Scenes` — Splash, Main, Game
+- `Assets/Scripts/Runtime` — gameplay (one asmdef)
+- `Assets/Scripts/Editor` — build / play helpers
+- `Assets/Tests/Editor` — EditMode tests
+- `Assets/ElvGames` — Fantasy Dreamland tilesets
+- `docs/` — design notes
+- `scripts/` — `play.sh`, `build.sh`, `format.sh`

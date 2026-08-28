@@ -284,24 +284,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tilemap: {fileID: 100200002}
-  grass: {fileID: 11400000, guid: 05e7fba1acadc0640a5b490d479c223f, type: 2}
+  grass: {fileID: 11400000, guid: 18d2e6d7aa0575c4daf78981127b55b9, type: 2}
+  pathCornerES: {fileID: 11400000, guid: 9f9f0fe5e8c402544a4aa21bd9bc552e, type: 2}
+  pathHorizontal: {fileID: 11400000, guid: acbd1f0c92ab810469a16155cc0313e6, type: 2}
+  pathVertical: {fileID: 11400000, guid: e3fe19e1756dd094ebae2ae86135dfd1, type: 2}
+  pathCornerNW: {fileID: 11400000, guid: f259204dbbee72242bfca28f350016bb, type: 2}
   grassDecorations:
-  - {fileID: 11400000, guid: 70f4814905b323c4d8e192d651d3ef37, type: 2}
-  - {fileID: 11400000, guid: 2161dbcd0f677b04f8d553c5dd9604f9, type: 2}
-  - {fileID: 11400000, guid: 9b50d7d3e1f16ed4983697533878903a, type: 2}
-  - {fileID: 11400000, guid: 05c963a7ddca56a438d0b015fd57c349, type: 2}
-  - {fileID: 11400000, guid: 20d253f20423eae4badbfc6be26d75e4, type: 2}
-  - {fileID: 11400000, guid: fd50342de4143cc478d16910a32f7519, type: 2}
-  - {fileID: 11400000, guid: b15aca203dc411c4290e137f0333ceef, type: 2}
+  - {fileID: 11400000, guid: ae9ccbf6c2c10a2498c52ffc87dad870, type: 2}
+  - {fileID: 11400000, guid: 9c0a6fec985316f47a6e80aa7a2a2110, type: 2}
   - {fileID: 11400000, guid: d67449d6407682d48acbdefd700b8576, type: 2}
-  - {fileID: 11400000, guid: 03139614c41b9df47aae0c701b69927b, type: 2}
-  - {fileID: 11400000, guid: 0ed16067b2210d84bb623005d08a47fb, type: 2}
-  - {fileID: 11400000, guid: b850a95a440b5fa4a8462791331a7bdf, type: 2}
-  - {fileID: 11400000, guid: 4e8c20523f188e24abc146641b1a10db, type: 2}
   - {fileID: 11400000, guid: 36f0693abda487948b8458f0dd3478aa, type: 2}
-  - {fileID: 11400000, guid: a9a52cb8f5d8a8241acdbb35186aeb61, type: 2}
-  - {fileID: 11400000, guid: fb364ef1b8b80184a8765cb368bb7b62, type: 2}
-  - {fileID: 11400000, guid: 0a19fad692fda8046b75266667a6e14e, type: 2}
+  - {fileID: 11400000, guid: 1f52e4e51a948e240a12f21af90eb518, type: 2}
+  - {fileID: 11400000, guid: 03139614c41b9df47aae0c701b69927b, type: 2}
+  - {fileID: 11400000, guid: dcab1b08a13ec7e419d0714129658214, type: 2}
+  - {fileID: 11400000, guid: 132b5eda4d02a3247b18f4177a2d6e6a, type: 2}
+  - {fileID: 11400000, guid: 0ed16067b2210d84bb623005d08a47fb, type: 2}
   worldCamera: {fileID: 519420031}
   slime: {fileID: 100300003}
   rat: {fileID: 100400003}

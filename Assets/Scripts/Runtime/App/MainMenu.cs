@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -7,13 +6,11 @@ using UnityEngine.UI;
 namespace SlimesRevenge
 {
     /// <summary>
-    /// Main menu on the splash scene. Duel: animated opponent chips → substance slots → Start.
-    /// Chips are separate framed buttons (no shared plate); footer actions sit side by side.
+    /// Main menu on the title scene (Duel / Campaign / Credits / Quit).
+    /// Not a splash: cold-start art lives on the Splash bootstrap scene only.
     /// </summary>
     public sealed class MainMenu : MonoBehaviour
     {
-        private const string GameScene = "Game";
-        private const float SplashHoldSeconds = 1f;
         private const float ChipGap = 18f;
         private const float FooterY = -150f;
         private const float RowY = 28f;
@@ -26,10 +23,17 @@ namespace SlimesRevenge
         private int editingSlot = -1;
         private Button selectedOpponentButton;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        private static void Boot()
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+        private static void RegisterBoot()
         {
-            if (SceneManager.GetActiveScene().name != "Main")
+            // AfterSceneLoad runs only for the first scene (Splash). Menu must spawn on every Main load.
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private static void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            if (scene.name != AppNavigation.MainScene)
             {
                 return;
             }
@@ -44,12 +48,6 @@ namespace SlimesRevenge
 
         private void Awake()
         {
-            var screens = FindObjectsByType<StaticScreen>(FindObjectsSortMode.None);
-            for (var i = 0; i < screens.Length; i++)
-            {
-                Destroy(screens[i]);
-            }
-
             Application.targetFrameRate = 30;
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             Screen.orientation = ScreenOrientation.LandscapeLeft;
@@ -59,13 +57,8 @@ namespace SlimesRevenge
             opponent = opponents.Count > 0 ? opponents[0].Kind : CreatureKind.Rat;
         }
 
-        private IEnumerator Start()
+        private void Start()
         {
-            if (SplashHoldSeconds > 0f)
-            {
-                yield return new WaitForSeconds(SplashHoldSeconds);
-            }
-
             EnsureUi();
             ShowRoot();
         }
@@ -133,7 +126,7 @@ namespace SlimesRevenge
         private void StartCampaign()
         {
             RunConfig.SetCampaign();
-            SceneManager.LoadScene(GameScene);
+            AppNavigation.GoToGame();
         }
 
         private void ShowCredits()
@@ -319,7 +312,7 @@ namespace SlimesRevenge
         private void StartDuel()
         {
             RunConfig.SetDuel(opponent, loadout);
-            SceneManager.LoadScene(GameScene);
+            AppNavigation.GoToGame();
         }
 
         private void OnDestroy()

@@ -1,7 +1,6 @@
 using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace SlimesRevenge
@@ -13,8 +12,6 @@ namespace SlimesRevenge
     {
         private const float ButtonHeight = 48f;
         private const float ButtonWidth = 240f;
-        private const string MenuScene = "Main";
-
         private Canvas canvas;
         private RectTransform panel;
         private Font font;
@@ -44,7 +41,7 @@ namespace SlimesRevenge
                     }
                     else
                     {
-                        SceneManager.LoadScene(MenuScene);
+                        AppNavigation.GoToMainMenu();
                     }
                 }
             );

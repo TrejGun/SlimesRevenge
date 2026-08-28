@@ -51,6 +51,26 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
+        public void ArrowKeys_MapToOrthogonalSteps_AndSpaceWaits()
+        {
+            Assert.IsTrue(GridStep.TryFromKey(KeyCode.UpArrow, out var up, out var waitUp));
+            Assert.AreEqual(Vector2Int.up, up);
+            Assert.IsFalse(waitUp);
+
+            Assert.IsTrue(GridStep.TryFromKey(KeyCode.DownArrow, out var down, out _));
+            Assert.AreEqual(Vector2Int.down, down);
+
+            Assert.IsTrue(GridStep.TryFromKey(KeyCode.LeftArrow, out var left, out _));
+            Assert.AreEqual(Vector2Int.left, left);
+
+            Assert.IsTrue(GridStep.TryFromKey(KeyCode.RightArrow, out var right, out _));
+            Assert.AreEqual(Vector2Int.right, right);
+
+            Assert.IsTrue(GridStep.TryFromKey(KeyCode.Space, out _, out var wait));
+            Assert.IsTrue(wait);
+        }
+
+        [Test]
         public void Swipe_MapsToEightDirections()
         {
             Assert.AreEqual(Vector2Int.up, GridStep.FromSwipe(Vector2.up));

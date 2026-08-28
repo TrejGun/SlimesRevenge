@@ -37,9 +37,9 @@ namespace SlimesRevenge.Tests
         public void FantasyDreamlandGrassFill_Exists()
         {
             var grass = AssetDatabase.LoadAssetAtPath<TileBase>(
-                "Assets/ElvGames/Fantasy Dreamland Reborn/Tilesets/Grasslands/Tiles/FDR_Grasslands_0.asset"
+                "Assets/ElvGames/Fantasy Dreamland Reborn/Tilesets/Ground Tiles/Tiles/FDR_Ground_Tiles_25.asset"
             );
-            Assert.IsNotNull(grass, "Fantasy Dreamland Reborn grass fill tile must exist.");
+            Assert.IsNotNull(grass, "Fantasy Dreamland Reborn green ground fill tile must exist.");
         }
 
         [Test]

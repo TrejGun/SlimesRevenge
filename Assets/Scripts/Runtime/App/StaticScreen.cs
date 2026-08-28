@@ -4,13 +4,16 @@ using UnityEngine.SceneManagement;
 
 namespace SlimesRevenge
 {
+    /// <summary>
+    /// Bootstrap-only: hold on Splash art, then hop to Main. Never used as a return target from Game.
+    /// </summary>
     public sealed class StaticScreen : MonoBehaviour
     {
         [SerializeField]
         private int targetFrameRate = 30;
 
         [SerializeField]
-        private string nextScene = "Game";
+        private string nextScene = "";
 
         [SerializeField]
         private float holdSeconds = 1f;
@@ -24,7 +27,7 @@ namespace SlimesRevenge
 
         private IEnumerator Start()
         {
-            if (string.IsNullOrEmpty(nextScene) || SceneManager.GetActiveScene().name == nextScene)
+            if (!ShouldAutoAdvance(SceneManager.GetActiveScene().name, nextScene))
             {
                 yield break;
             }
@@ -34,7 +37,34 @@ namespace SlimesRevenge
                 yield return new WaitForSeconds(holdSeconds);
             }
 
+            if (this == null || !isActiveAndEnabled)
+            {
+                yield break;
+            }
+
+            if (!ShouldAutoAdvance(SceneManager.GetActiveScene().name, nextScene))
+            {
+                yield break;
+            }
+
             SceneManager.LoadScene(nextScene);
+        }
+
+        /// <summary>Pure gate for auto scene advance (EditMode-testable).</summary>
+        public static bool ShouldAutoAdvance(string activeScene, string nextSceneName)
+        {
+            if (string.IsNullOrEmpty(nextSceneName) || activeScene == nextSceneName)
+            {
+                return false;
+            }
+
+            // Exit / menu must never bounce through Splash again.
+            if (activeScene == AppNavigation.MainScene || activeScene == AppNavigation.GameScene)
+            {
+                return false;
+            }
+
+            return true;
         }
     }
 }

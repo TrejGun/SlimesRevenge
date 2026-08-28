@@ -82,5 +82,55 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(RunKind.Campaign, run.Kind);
             Assert.IsNull(run.Loadout);
         }
+
+        [Test]
+        public void RunConfig_ExportImport_SurvivesStaticDrop_Duel()
+        {
+            var loadout = RunConfig.DefaultWaterLoadout();
+            loadout[2] = new Lava();
+            RunConfig.SetDuel(CreatureKind.Rat, loadout);
+            Assert.IsTrue(RunConfig.TryExportPending(out var payload));
+
+            RunConfig.DropStaticForTests();
+            Assert.IsFalse(RunConfig.HasPending);
+
+            RunConfig.ImportPending(payload);
+            Assert.IsTrue(RunConfig.TryPeek(out var restored));
+            Assert.AreEqual(RunKind.Duel, restored.Kind);
+            Assert.AreEqual(CreatureKind.Rat, restored.Opponent);
+            Assert.IsInstanceOf<Lava>(restored.Loadout[2]);
+            Assert.IsInstanceOf<Water>(restored.Loadout[0]);
+        }
+
+        [Test]
+        public void RunConfig_ExportImport_SurvivesStaticDrop_Campaign()
+        {
+            RunConfig.SetCampaign();
+            Assert.IsTrue(RunConfig.TryExportPending(out var payload));
+            RunConfig.DropStaticForTests();
+            RunConfig.ImportPending(payload);
+            Assert.IsTrue(RunConfig.TryPeek(out var restored));
+            Assert.AreEqual(RunKind.Campaign, restored.Kind);
+            Assert.IsNull(restored.Loadout);
+        }
+
+        [Test]
+        public void RunConfig_Consume_RaisesCleared()
+        {
+            var cleared = 0;
+            void OnCleared() => cleared++;
+            RunConfig.Cleared += OnCleared;
+            try
+            {
+                RunConfig.SetDuel(CreatureKind.Dog, RunConfig.DefaultWaterLoadout());
+                Assert.IsTrue(RunConfig.TryConsume(out _));
+                Assert.AreEqual(1, cleared);
+                Assert.IsFalse(RunConfig.HasPending);
+            }
+            finally
+            {
+                RunConfig.Cleared -= OnCleared;
+            }
+        }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Tilemaps;
 
@@ -7,13 +8,29 @@ namespace SlimesRevenge
     public sealed class WorldView : MonoBehaviour
     {
         private const int DecorSeed = 42;
-        private const float DecorChance = 0.35f;
+        private const float DecorChance = 0.22f;
 
         [SerializeField]
         private Tilemap tilemap;
 
         [SerializeField]
         private TileBase grass;
+
+        /// <summary>Example Ground002 set A: SE/ES corner (FDR_Ground_Tiles_0).</summary>
+        [SerializeField]
+        private TileBase pathCornerES;
+
+        /// <summary>Horizontal mid (FDR_Ground_Tiles_1).</summary>
+        [SerializeField]
+        private TileBase pathHorizontal;
+
+        /// <summary>Vertical mid / caps (FDR_Ground_Tiles_24).</summary>
+        [SerializeField]
+        private TileBase pathVertical;
+
+        /// <summary>NW corner / east-to-north turn (FDR_Ground_Tiles_49).</summary>
+        [SerializeField]
+        private TileBase pathCornerNW;
 
         [SerializeField]
         private TileBase[] grassDecorations;
@@ -51,6 +68,7 @@ namespace SlimesRevenge
         public World Map { get; private set; }
 
         private Tilemap decorTilemap;
+        private Tilemap pathTilemap;
         private SpriteRenderer cursor;
         private Texture2D cursorTexture;
         private RunConfig activeRun;
@@ -76,6 +94,10 @@ namespace SlimesRevenge
 
             cursor = CreateCursor();
             FrameCamera();
+
+            UnityEngine.Debug.Log(
+                $"[PlayReady] {activeRun?.Kind.ToString() ?? "Campaign"} {Map.Width}x{Map.Height}"
+            );
 
             if (gameObject.GetComponent<ActionLogView>() == null)
             {
@@ -118,23 +140,31 @@ namespace SlimesRevenge
 
                 hud.Bind(slime);
             }
+
+            // Duel + campaign share this scene; always offer a way back to Main.
+            if (gameObject.GetComponent<ExitHud>() == null)
+            {
+                gameObject.AddComponent<ExitHud>();
+            }
         }
 
         private void BootstrapCampaign()
         {
             Map = World.CreateGrass();
             EnsureDecorTilemap();
-            Paint();
-            Place(slime, Map.Center);
-            Place(rat, Map.Center + Vector2Int.right);
-            Place(cat, Map.Center + Vector2Int.right + Vector2Int.up);
-            Place(dog, Map.Center + Vector2Int.right + Vector2Int.down);
-            bat = EnsureBeast(bat, "Bat", batSprite, Map.Center + Vector2Int.left);
+            EnsurePathTilemap();
+            var center = Map.Center;
+            Paint(paintPath: false, center);
+            Place(slime, center);
+            Place(rat, center + Vector2Int.right);
+            Place(cat, center + Vector2Int.right + Vector2Int.up);
+            Place(dog, center + Vector2Int.right + Vector2Int.down);
+            bat = EnsureBeast(bat, "Bat", batSprite, center + Vector2Int.left);
             scorpion = EnsureBeast(
                 scorpion,
                 "Scorpion",
                 scorpionSprite,
-                Map.Center + Vector2Int.left + Vector2Int.up
+                center + Vector2Int.left + Vector2Int.up
             );
 
             if (turnManager != null && slime != null)
@@ -149,13 +179,14 @@ namespace SlimesRevenge
         {
             Map = new World(RunConfig.DuelWidth, RunConfig.DuelHeight, TerrainType.Grass);
             EnsureDecorTilemap();
-            Paint();
+            EnsurePathTilemap();
 
             var slimeCell = new Vector2Int(
                 (Map.Width - RunConfig.DuelSeparation) / 2,
                 Map.Height / 2
             );
             var foeCell = new Vector2Int(slimeCell.x + RunConfig.DuelSeparation, slimeCell.y);
+            Paint(paintPath: true, slimeCell, foeCell);
             Place(slime, slimeCell);
 
             DisableCreature(rat);
@@ -269,7 +300,7 @@ namespace SlimesRevenge
             );
         }
 
-        private void Paint()
+        private void Paint(bool paintPath, params Vector2Int[] spawnCells)
         {
             tilemap.ClearAllTiles();
             for (var y = 0; y < Map.Height; y++)
@@ -281,7 +312,9 @@ namespace SlimesRevenge
             }
 
             tilemap.RefreshAllTiles();
-            PaintDecorations();
+
+            var pathCells = paintPath ? PaintDiagonalPathLayer() : new HashSet<Vector2Int>();
+            PaintDecorations(pathCells, spawnCells);
         }
 
         private void EnsureDecorTilemap()
@@ -295,14 +328,157 @@ namespace SlimesRevenge
             go.transform.SetParent(tilemap.transform.parent, false);
             decorTilemap = go.AddComponent<Tilemap>();
             var renderer = go.AddComponent<TilemapRenderer>();
+            // Above base grass (0), below path cliff layer (2).
             renderer.sortingOrder = 1;
         }
 
-        private void PaintDecorations()
+        private void EnsurePathTilemap()
+        {
+            if (pathTilemap != null || tilemap == null)
+            {
+                return;
+            }
+
+            var go = new GameObject("GroundPath");
+            go.transform.SetParent(tilemap.transform.parent, false);
+            pathTilemap = go.AddComponent<Tilemap>();
+            var renderer = go.AddComponent<TilemapRenderer>();
+            // Example_Grasslands Ground002 — cliff/path over fill.
+            renderer.sortingOrder = 2;
+        }
+
+        /// <summary>
+        /// Continuous BL→TR staircase using Example Ground002 set A (0/1/24/49).
+        /// </summary>
+        private HashSet<Vector2Int> PaintDiagonalPathLayer()
+        {
+            var pathCells = new HashSet<Vector2Int>();
+            if (pathTilemap == null || !HasPathTiles() || Map == null)
+            {
+                return pathCells;
+            }
+
+            pathTilemap.ClearAllTiles();
+            BuildStaircasePath(pathCells);
+            foreach (var cell in pathCells)
+            {
+                var tile = AutotilePath(cell, pathCells);
+                if (tile != null)
+                {
+                    pathTilemap.SetTile(new Vector3Int(cell.x, cell.y, 0), tile);
+                }
+            }
+
+            pathTilemap.RefreshAllTiles();
+            return pathCells;
+        }
+
+        private bool HasPathTiles()
+        {
+            return pathCornerES != null
+                && pathHorizontal != null
+                && pathVertical != null
+                && pathCornerNW != null;
+        }
+
+        private void BuildStaircasePath(HashSet<Vector2Int> pathCells)
+        {
+            var x = 0;
+            var y = 0;
+            pathCells.Add(new Vector2Int(x, y));
+            var endX = Map.Width - 1;
+            var endY = Map.Height - 1;
+            while (x < endX || y < endY)
+            {
+                var remainX = endX - x;
+                var remainY = endY - y;
+                if (remainX == 0)
+                {
+                    y++;
+                    pathCells.Add(new Vector2Int(x, y));
+                    continue;
+                }
+
+                if (remainY == 0)
+                {
+                    x++;
+                    pathCells.Add(new Vector2Int(x, y));
+                    continue;
+                }
+
+                // East run, then one step north — same rhythm as Example Ground002.
+                var run = Mathf.Max(1, remainX / remainY);
+                for (var i = 0; i < run && x < endX; i++)
+                {
+                    x++;
+                    pathCells.Add(new Vector2Int(x, y));
+                }
+
+                if (y < endY)
+                {
+                    y++;
+                    pathCells.Add(new Vector2Int(x, y));
+                }
+            }
+        }
+
+        /// <summary>
+        /// Cardinal autotile matching Example set A: ES→0, EW→1, NS→24, NW→49.
+        /// </summary>
+        private TileBase AutotilePath(Vector2Int cell, HashSet<Vector2Int> pathCells)
+        {
+            var n = pathCells.Contains(cell + Vector2Int.up);
+            var e = pathCells.Contains(cell + Vector2Int.right);
+            var s = pathCells.Contains(cell + Vector2Int.down);
+            var w = pathCells.Contains(cell + Vector2Int.left);
+
+            if (e && s && !n && !w)
+            {
+                return pathCornerES;
+            }
+
+            if (n && w && !e && !s)
+            {
+                return pathCornerNW;
+            }
+
+            if (e && w)
+            {
+                return pathHorizontal;
+            }
+
+            if (n && s)
+            {
+                return pathVertical;
+            }
+
+            if (e && !w)
+            {
+                return pathCornerES;
+            }
+
+            if (w && !e)
+            {
+                return pathCornerNW;
+            }
+
+            return pathVertical;
+        }
+
+        private void PaintDecorations(HashSet<Vector2Int> pathCells, Vector2Int[] spawnCells)
         {
             if (decorTilemap == null || grassDecorations == null || grassDecorations.Length == 0)
             {
                 return;
+            }
+
+            var reserved = new HashSet<Vector2Int>(pathCells);
+            if (spawnCells != null)
+            {
+                for (var i = 0; i < spawnCells.Length; i++)
+                {
+                    reserved.Add(spawnCells[i]);
+                }
             }
 
             decorTilemap.ClearAllTiles();
@@ -311,7 +487,8 @@ namespace SlimesRevenge
             {
                 for (var x = 0; x < Map.Width; x++)
                 {
-                    if (rng.NextDouble() > DecorChance)
+                    var cell = new Vector2Int(x, y);
+                    if (reserved.Contains(cell) || rng.NextDouble() > DecorChance)
                     {
                         continue;
                     }

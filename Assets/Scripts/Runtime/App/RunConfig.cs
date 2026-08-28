@@ -1,4 +1,5 @@
 using System;
+using System.Text;
 
 namespace SlimesRevenge
 {
@@ -11,6 +12,7 @@ namespace SlimesRevenge
 
     /// <summary>
     /// One-shot bootstrap payload from Main Menu → Game scene.
+    /// Editor play-mode domain reload is handled by <c>RunConfigPlayModeBridge</c> (SessionState, no files).
     /// </summary>
     public sealed class RunConfig
     {
@@ -22,6 +24,9 @@ namespace SlimesRevenge
         public const int LoadoutSlots = 5;
 
         private static RunConfig pending;
+
+        /// <summary>Fired when pending is cleared (Editor bridge erases SessionState).</summary>
+        public static event Action Cleared;
 
         public RunKind Kind { get; private set; }
 
@@ -79,12 +84,22 @@ namespace SlimesRevenge
         {
             config = pending;
             pending = null;
+            if (config != null)
+            {
+                Cleared?.Invoke();
+            }
+
             return config != null;
         }
 
         public static void Clear()
         {
+            var had = pending != null;
             pending = null;
+            if (had)
+            {
+                Cleared?.Invoke();
+            }
         }
 
         public static Substance[] DefaultWaterLoadout()
@@ -96,6 +111,111 @@ namespace SlimesRevenge
             }
 
             return units;
+        }
+
+        /// <summary>Serialize pending for Editor SessionState (no disk).</summary>
+        public static bool TryExportPending(out string payload)
+        {
+            if (pending == null)
+            {
+                payload = null;
+                return false;
+            }
+
+            payload = Export(pending);
+            return true;
+        }
+
+        /// <summary>Restore pending after Editor domain reload.</summary>
+        public static void ImportPending(string payload)
+        {
+            pending = string.IsNullOrEmpty(payload) ? null : Parse(payload);
+        }
+
+#if UNITY_EDITOR
+        public static void DropStaticForTests()
+        {
+            pending = null;
+        }
+#endif
+
+        private static string Export(RunConfig config)
+        {
+            var sb = new StringBuilder();
+            sb.Append(config.Kind);
+            sb.Append('|');
+            sb.Append(config.Opponent);
+            sb.Append('|');
+            if (config.Loadout != null)
+            {
+                for (var i = 0; i < config.Loadout.Length; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(',');
+                    }
+
+                    var unit = config.Loadout[i];
+                    sb.Append(unit != null ? unit.GetType().Name : nameof(Water));
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static RunConfig Parse(string text)
+        {
+            var parts = text.Trim().Split('|');
+            if (parts.Length < 2)
+            {
+                return null;
+            }
+
+            if (!Enum.TryParse(parts[0], out RunKind kind))
+            {
+                return null;
+            }
+
+            if (!Enum.TryParse(parts[1], out CreatureKind opponent))
+            {
+                opponent = CreatureKind.Rat;
+            }
+
+            Substance[] loadout = null;
+            if (kind == RunKind.Duel)
+            {
+                loadout = new Substance[LoadoutSlots];
+                var names =
+                    parts.Length >= 3 && !string.IsNullOrEmpty(parts[2])
+                        ? parts[2].Split(',')
+                        : Array.Empty<string>();
+                for (var i = 0; i < LoadoutSlots; i++)
+                {
+                    var name = i < names.Length ? names[i] : nameof(Water);
+                    loadout[i] = SubstanceCatalog.Create(FindSubstanceType(name));
+                }
+            }
+
+            return new RunConfig
+            {
+                Kind = kind,
+                Opponent = opponent,
+                Loadout = loadout,
+            };
+        }
+
+        private static Type FindSubstanceType(string name)
+        {
+            var all = SubstanceCatalog.AllTypes;
+            for (var i = 0; i < all.Count; i++)
+            {
+                if (string.Equals(all[i].Name, name, StringComparison.Ordinal))
+                {
+                    return all[i];
+                }
+            }
+
+            return typeof(Water);
         }
     }
 }

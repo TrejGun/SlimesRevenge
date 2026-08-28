@@ -8,13 +8,25 @@ namespace SlimesRevenge.Tests
     public class BuildSettingsTests
     {
         [Test]
+        public void SplashScene_IsFirstEnabledInBuildSettings()
+        {
+            var scenes = EditorBuildSettings.scenes.Where(scene => scene.enabled).ToArray();
+            Assert.IsNotEmpty(scenes);
+            Assert.IsTrue(
+                scenes[0].path.EndsWith("Splash.unity"),
+                "Assets/Scenes/Splash.unity must be the first enabled Build Settings scene."
+            );
+        }
+
+        [Test]
         public void MainScene_IsEnabledInBuildSettings()
         {
             var scenes = EditorBuildSettings.scenes;
             Assert.IsNotEmpty(scenes, "Build Settings must contain at least one scene.");
             Assert.IsTrue(
                 scenes.Any(scene => scene.enabled && scene.path.EndsWith("Main.unity")),
-                "Assets/Scenes/Main.unity must be enabled in Build Settings.");
+                "Assets/Scenes/Main.unity must be enabled in Build Settings."
+            );
         }
 
         [Test]

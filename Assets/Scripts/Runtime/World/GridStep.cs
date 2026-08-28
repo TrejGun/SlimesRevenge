@@ -126,21 +126,25 @@ namespace SlimesRevenge
             switch (key)
             {
                 case KeyCode.W:
+                case KeyCode.UpArrow:
                 case KeyCode.Keypad8:
                 case KeyCode.Alpha8:
                     offset = Vector2Int.up;
                     return true;
                 case KeyCode.S:
+                case KeyCode.DownArrow:
                 case KeyCode.Keypad2:
                 case KeyCode.Alpha2:
                     offset = Vector2Int.down;
                     return true;
                 case KeyCode.A:
+                case KeyCode.LeftArrow:
                 case KeyCode.Keypad4:
                 case KeyCode.Alpha4:
                     offset = Vector2Int.left;
                     return true;
                 case KeyCode.D:
+                case KeyCode.RightArrow:
                 case KeyCode.Keypad6:
                 case KeyCode.Alpha6:
                     offset = Vector2Int.right;
@@ -163,6 +167,7 @@ namespace SlimesRevenge
                     return true;
                 case KeyCode.Keypad5:
                 case KeyCode.Alpha5:
+                case KeyCode.Space:
                     wait = true;
                     return true;
                 default:

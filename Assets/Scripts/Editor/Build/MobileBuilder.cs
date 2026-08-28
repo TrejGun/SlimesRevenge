@@ -6,6 +6,7 @@ using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace SlimesRevenge.Editor
 {
@@ -26,15 +27,77 @@ namespace SlimesRevenge.Editor
             Build(BuildTarget.iOS, IosOutput);
         }
 
+        /// <summary>Splash → Main menu (full cold start).</summary>
         public static void PlayInEditor()
         {
-            var scene = "Assets/Scenes/Main.unity";
-            if (!EditorSceneManager.OpenScene(scene).IsValid())
+            RunConfig.Clear();
+            PlayScene("Assets/Scenes/Splash.unity");
+        }
+
+        /// <summary>Game campaign with default cast (skips splash/menu).</summary>
+        public static void PlayCampaign()
+        {
+            RunConfig.SetCampaign();
+            PlayScene("Assets/Scenes/Game.unity");
+        }
+
+        /// <summary>Duel vs Rat with default water loadout (skips splash/menu).</summary>
+        public static void PlayDuel()
+        {
+            RunConfig.SetDuel(CreatureKind.Rat, RunConfig.DefaultWaterLoadout());
+            PlayScene("Assets/Scenes/Game.unity");
+        }
+
+        private static void PlayScene(string scene)
+        {
+            var opened = EditorSceneManager.OpenScene(scene, OpenSceneMode.Single);
+            if (!opened.IsValid())
             {
                 throw new InvalidOperationException($"Failed to open {scene}");
             }
 
-            EditorApplication.delayCall += () => { EditorApplication.isPlaying = true; };
+            if (Camera.main == null && UnityEngine.Object.FindFirstObjectByType<Camera>() == null)
+            {
+                throw new InvalidOperationException(
+                    $"Scene '{scene}' has no Camera — refusing Play Mode (would show 'No cameras rendering')."
+                );
+            }
+
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
+            EditorApplication.delayCall += () =>
+            {
+                EditorApplication.isPlaying = true;
+            };
+        }
+
+        private static void OnPlayModeStateChanged(PlayModeStateChange state)
+        {
+            if (state != PlayModeStateChange.EnteredPlayMode)
+            {
+                return;
+            }
+
+            EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
+            var cam = Camera.main ?? UnityEngine.Object.FindFirstObjectByType<Camera>();
+            var scene = SceneManager.GetActiveScene().path;
+            if (cam == null || !cam.enabled || !cam.gameObject.activeInHierarchy)
+            {
+                Debug.LogError(
+                    $"[Play] No active camera in '{scene}'. Game view will show 'No cameras rendering'."
+                );
+                return;
+            }
+
+            Debug.Log(
+                $"[Play] OK camera '{cam.name}' in '{scene}' (display {cam.targetDisplay}, enabled)."
+            );
+
+            // Game boots signal from WorldView ([PlayReady] Duel|Campaign). Menu cold-start here.
+            if (scene.EndsWith("Splash.unity", StringComparison.Ordinal) || scene.EndsWith("Main.unity", StringComparison.Ordinal))
+            {
+                Debug.Log("[PlayReady] Splash");
+            }
         }
 
         public static void BuildOSX()
@@ -70,8 +133,8 @@ namespace SlimesRevenge.Editor
         {
             ConfigurePlayer();
 
-            var scenes = EditorBuildSettings.scenes
-                .Where(scene => scene.enabled)
+            var scenes = EditorBuildSettings
+                .scenes.Where(scene => scene.enabled)
                 .Select(scene => scene.path)
                 .ToArray();
 
@@ -80,10 +143,11 @@ namespace SlimesRevenge.Editor
                 throw new InvalidOperationException("No enabled scenes in Build Settings.");
             }
 
-            var absoluteOutput = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), outputPath));
-            var outputDirectory = target == BuildTarget.iOS
-                ? absoluteOutput
-                : Path.GetDirectoryName(absoluteOutput);
+            var absoluteOutput = Path.GetFullPath(
+                Path.Combine(Directory.GetCurrentDirectory(), outputPath)
+            );
+            var outputDirectory =
+                target == BuildTarget.iOS ? absoluteOutput : Path.GetDirectoryName(absoluteOutput);
             Directory.CreateDirectory(outputDirectory ?? "Build");
 
             if (target == BuildTarget.Android)
@@ -97,14 +161,15 @@ namespace SlimesRevenge.Editor
                 scenes = scenes,
                 locationPathName = absoluteOutput,
                 target = target,
-                options = BuildOptions.CompressWithLz4
+                options = BuildOptions.CompressWithLz4,
             };
 
             var report = BuildPipeline.BuildPlayer(options);
             if (report.summary.result != BuildResult.Succeeded)
             {
                 throw new InvalidOperationException(
-                    $"{target} build failed: {report.summary.result} ({report.summary.totalErrors} errors)");
+                    $"{target} build failed: {report.summary.result} ({report.summary.totalErrors} errors)"
+                );
             }
 
             Debug.Log($"{target} build succeeded: {absoluteOutput}");
