@@ -67,12 +67,12 @@ Project rules live in [`.cursor/rules/`](.cursor/rules/). Open or edit matching 
 
 ## Unity version
 
-**Unity 6000.5.9f1**. Bundle id: `com.trejgun.slimesrevenge`.
+**Unity 6000.3.23f1**. Bundle id: `com.trejgun.slimesrevenge`.
 
 Default local editor path on this machine:
 
 ```text
-/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity
+/Applications/Unity/Hub/Editor/6000.3.23f1/Unity.app/Contents/MacOS/Unity
 ```
 
 Override with `UNITY_EDITOR` for builds (`scripts/build.sh`).
@@ -114,7 +114,7 @@ Agent rules:
 
 ## Setup
 
-1. Open the project in Unity Hub with editor **6000.5.9f1**.
+1. Open the project in Unity Hub with editor **6000.3.23f1**.
 2. Wait for script compile (packages: Unity Behavior, A* Pathfinding Project under `Assets/`).
 3. Activate a Unity license for batchmode / CI.
 4. (Optional) C# formatting — needs a local **dotnet** SDK **8+** (CSharpier 1.x):
@@ -141,7 +141,7 @@ Tests are NUnit EditMode under `Assets/Tests/Editor`. CI runs them via GameCI (`
 ### Full EditMode suite (local batchmode)
 
 ```bash
-UNITY="/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity"
+UNITY="/Applications/Unity/Hub/Editor/6000.3.23f1/Unity.app/Contents/MacOS/Unity"
 "$UNITY" -batchmode -nographics \
   -projectPath "$(pwd)" \
   -runTests -testPlatform EditMode \
@@ -152,7 +152,7 @@ UNITY="/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity"
 ### Focused filter
 
 ```bash
-UNITY="/Applications/Unity/Hub/Editor/6000.5.9f1/Unity.app/Contents/MacOS/Unity"
+UNITY="/Applications/Unity/Hub/Editor/6000.3.23f1/Unity.app/Contents/MacOS/Unity"
 "$UNITY" -batchmode -nographics \
   -projectPath "$(pwd)" \
   -runTests -testPlatform EditMode \
