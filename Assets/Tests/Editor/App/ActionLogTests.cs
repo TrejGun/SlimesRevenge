@@ -187,7 +187,7 @@ namespace SlimesRevenge.Tests
             slime.SetMaxHitPoints(0);
             slime.RefreshVolumeStatuses();
 
-            var dog = Spawn<Dog>(Vector2Int.right);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.right);
             dog.Volume.Clear();
             Dog.FillStarting(dog.Volume);
             dog.SetMaxHitPoints(10);
@@ -293,7 +293,7 @@ namespace SlimesRevenge.Tests
             slime.SetMaxHitPoints(0);
             slime.RefreshVolumeStatuses();
 
-            var dog = Spawn<Dog>(Vector2Int.right);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.right);
             dog.SetMaxHitPoints(10);
 
             Assert.IsTrue(Combat.Attack(dog, slime));
@@ -324,7 +324,10 @@ namespace SlimesRevenge.Tests
             var poisonousIndex = texts.IndexOf(I18n.Get(TextKey.StatusPoisonous));
             Assert.GreaterOrEqual(poisonousIndex, 0);
             Assert.Greater(
-                texts.FindIndex(poisonousIndex, t => t.Contains(I18n.Get(TextKey.StatusPoisoned))),
+                texts.FindIndex(
+                    poisonousIndex,
+                    t => t.Contains($"gains {I18n.Get(TextKey.StatusPoisoned)}")
+                ),
                 poisonousIndex
             );
 
@@ -377,6 +380,8 @@ namespace SlimesRevenge.Tests
         public void BatMeleeBloodTip_LogsVampirismHeal()
         {
             var bat = Spawn<Bat>(Vector2Int.zero);
+            bat.SetMaxHitPoints(3);
+            bat.EnsureInnateTraits();
             bat.Damage(1);
             Assert.AreEqual(2, bat.HitPoints);
 
@@ -444,13 +449,11 @@ namespace SlimesRevenge.Tests
             turns.Rng = new FixedRng();
             turns.Bind(World.CreateGrass(3), player);
 
-            var dog = SpawnObject("DogCorpse").AddComponent<Dog>();
-            dog.PlaceOn(player.Cell);
-            dog.Volume.Clear();
-            dog.Volume.Add(new Water());
-            dog.Volume.Add(new Oil());
-            dog.Volume.Add(new Blood());
-            dog.SetMaxHitPoints(10);
+            var dog = TestCreature
+                .Spawn(spawned, player.Cell)
+                .As(CreatureKind.Dog)
+                .WithHp(10)
+                .Fill(new Water(), new Oil(), new Blood());
             dog.BecomeCorpse();
             turns.Session.World.Floor.AddCorpse(dog);
             ActionLog.Clear();
@@ -601,7 +604,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void BurningTurn_LogsStatusAndDamage()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.SetMaxHitPoints(10);
             Assert.IsTrue(dog.AddStatus(new Burning()));
             ActionLog.Clear();
@@ -621,7 +624,7 @@ namespace SlimesRevenge.Tests
             var floor = new Floor();
             Assert.IsTrue(floor.TryPlacePuddle(Vector2Int.zero, new Oil()));
 
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.SetMaxHitPoints(10);
             floor.ApplyContact(dog);
 

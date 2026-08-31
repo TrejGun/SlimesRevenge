@@ -27,9 +27,9 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void DumpTwoPuddles_ThenDevourDog_FillsWithoutOverflow()
+        public void DumpTwoPuddles_ThenDevourEnemy_FillsWithoutOverflow()
         {
-            // Dog keeps MaxHitPoints 10 (decay), but is softened so one strike finishes it.
+            // Enemy keeps MaxHitPoints 10 (decay), but is softened so one strike finishes it.
             // HP decay outlives: mess → step aside → mess → step onto corpse → digest.
             var center = new Vector2Int(1, 1);
             var dogCell = new Vector2Int(2, 1);
@@ -37,7 +37,7 @@ namespace SlimesRevenge.Tests
 
             var world = new World(3, 3, TerrainType.Grass);
             var slime = SpawnFilled(center, new Water(), 10);
-            var dog = Spawn<Dog>(dogCell);
+            var dog = TestCreatures.Aggressive(spawned, dogCell);
             Assert.AreEqual(10, dog.MaxHitPoints);
             while (dog.HitPoints > 1)
             {

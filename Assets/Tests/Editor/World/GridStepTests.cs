@@ -46,8 +46,8 @@ namespace SlimesRevenge.Tests
         [Test]
         public void IsAdjacent_Creatures_UsesCells()
         {
-            var a = new GameObject("A").AddComponent<Rat>();
-            var b = new GameObject("B").AddComponent<Dog>();
+            var a = TestCreature.Spawn(null, Vector2Int.zero);
+            var b = TestCreature.Spawn(null, new Vector2Int(1, 1));
             try
             {
                 a.PlaceOn(Vector2Int.zero);

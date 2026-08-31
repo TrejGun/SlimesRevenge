@@ -46,6 +46,26 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(2, bat.Volume.CountOf<Blood>());
             Assert.AreEqual(3, bat.HitPoints);
 
+            var mushroom = Spawn<Mushroom>();
+            Assert.AreEqual(5, mushroom.HitPoints);
+            Assert.AreEqual(1, mushroom.Volume.CountOf<Water>());
+
+            var waterElement = Spawn<WaterElement>();
+            Assert.AreEqual(5, waterElement.HitPoints);
+            Assert.AreEqual(1, waterElement.Volume.CountOf<Water>());
+
+            var cactus = Spawn<Cactus>();
+            Assert.AreEqual(5, cactus.HitPoints);
+            Assert.AreEqual(1, cactus.Volume.CountOf<Water>());
+
+            var mandragora = Spawn<Mandragora>();
+            Assert.AreEqual(5, mandragora.HitPoints);
+            Assert.AreEqual(1, mandragora.Volume.CountOf<Water>());
+
+            var eye = Spawn<Eye>();
+            Assert.AreEqual(5, eye.HitPoints);
+            Assert.AreEqual(1, eye.Volume.CountOf<Water>());
+
             var scorpion = Spawn<Scorpion>();
             Assert.IsNotNull(scorpion.FindStatus<Poisonous>());
             Assert.AreEqual(1, scorpion.Volume.UnitCount);
@@ -257,6 +277,21 @@ namespace SlimesRevenge.Tests
                     case Scorpion:
                         Scorpion.FillStarting(creature.Volume);
                         break;
+                    case Mushroom:
+                        Mushroom.FillStarting(creature.Volume);
+                        break;
+                    case WaterElement:
+                        WaterElement.FillStarting(creature.Volume);
+                        break;
+                    case Cactus:
+                        Cactus.FillStarting(creature.Volume);
+                        break;
+                    case Mandragora:
+                        Mandragora.FillStarting(creature.Volume);
+                        break;
+                    case Eye:
+                        Eye.FillStarting(creature.Volume);
+                        break;
                 }
             }
 
@@ -281,6 +316,13 @@ namespace SlimesRevenge.Tests
                 case Scorpion:
                     creature.SetMaxHitPoints(3);
                     creature.SetArmor(1);
+                    break;
+                case Mushroom:
+                case WaterElement:
+                case Cactus:
+                case Mandragora:
+                case Eye:
+                    creature.SetMaxHitPoints(5);
                     break;
             }
 

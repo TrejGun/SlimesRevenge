@@ -25,6 +25,10 @@ namespace SlimesRevenge
         private Sprite lavaSprite;
 
         private SpriteRenderer body;
+        private CreatureSpriteAnimator animator;
+        private SlimeLook shownLook;
+        private WalkFacing facing = WalkFacing.East;
+        private bool appearanceStarted;
 
         public static void FillStarting(Volume volume)
         {
@@ -53,6 +57,12 @@ namespace SlimesRevenge
             ApplyAppearance();
         }
 
+        public void Face(Vector2Int cell)
+        {
+            facing = FdrSheetLayout.FacingToward(Cell, cell);
+            appearanceStarted = false;
+        }
+
         public void ApplyAppearance()
         {
             if (body == null)
@@ -65,10 +75,34 @@ namespace SlimesRevenge
                 return;
             }
 
-            var sprite = SpriteFor(SlimeAppearance.FromVolume(Volume));
-            if (sprite != null && body.sprite != sprite)
+            var look = SlimeAppearance.FromVolume(Volume);
+            if (appearanceStarted && look == shownLook)
             {
-                body.sprite = sprite;
+                return;
+            }
+
+            shownLook = look;
+            appearanceStarted = true;
+            var sheet = SpriteFor(look);
+            var frames = SlimeSprites.Walk(sheet, facing);
+            if (frames.Length > 1)
+            {
+                if (animator == null)
+                {
+                    animator = GetComponent<CreatureSpriteAnimator>();
+                    if (animator == null)
+                    {
+                        animator = gameObject.AddComponent<CreatureSpriteAnimator>();
+                    }
+                }
+
+                animator.Play(frames);
+                return;
+            }
+
+            if (sheet != null && body.sprite != sheet)
+            {
+                body.sprite = sheet;
             }
         }
 

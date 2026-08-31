@@ -35,7 +35,7 @@ namespace SlimesRevenge
             }
         }
 
-        /// <summary>All creatures except the player slime — for duel opponent pickers.</summary>
+        /// <summary>All creatures except the player slime and retired animals.</summary>
         public static IReadOnlyList<Entry> Opponents
         {
             get
@@ -44,7 +44,7 @@ namespace SlimesRevenge
                 var list = new List<Entry>(entries.Count);
                 for (var i = 0; i < entries.Count; i++)
                 {
-                    if (entries[i].Kind != CreatureKind.Slime)
+                    if (entries[i].Kind != CreatureKind.Slime && !IsRetired(entries[i].Kind))
                     {
                         list.Add(entries[i]);
                     }
@@ -52,6 +52,15 @@ namespace SlimesRevenge
 
                 return list;
             }
+        }
+
+        /// <summary>Rat / Cat / Dog / Scorpion stay in code and tests but are not in the live roster.</summary>
+        public static bool IsRetired(CreatureKind kind)
+        {
+            return kind == CreatureKind.Rat
+                || kind == CreatureKind.Cat
+                || kind == CreatureKind.Dog
+                || kind == CreatureKind.Scorpion;
         }
 
         public static Type TypeOf(CreatureKind kind)
@@ -99,6 +108,7 @@ namespace SlimesRevenge
                         type == null
                         || !type.IsClass
                         || type.IsAbstract
+                        || type == typeof(TestCreature)
                         || !creatureType.IsAssignableFrom(type)
                     )
                     {

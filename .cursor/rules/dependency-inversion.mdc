@@ -11,7 +11,7 @@ globs:
   - Assets/Scripts/Runtime/Behavior/CreatureMoves.cs
   - Assets/Scripts/Runtime/World/Floor.cs
   - Assets/Scripts/Runtime/World/GridPath.cs
-  - Assets/Tests/Editor/Behavior/DogCatHuntSimulationTests.cs
+  - Assets/Tests/Editor/Behavior/EnemyHuntSimulationTests.cs
   - Assets/Tests/Editor/TestSupport/SessionFactory.cs
   - docs/status-effects.md
   - docs/strike-vs-puddle.md

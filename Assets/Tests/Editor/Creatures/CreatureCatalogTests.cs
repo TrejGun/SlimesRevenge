@@ -31,14 +31,20 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void CreatureCatalog_Opponents_ExcludeSlime()
+        public void CreatureCatalog_Opponents_ExcludeSlimeAndRetired()
         {
             var opponents = CreatureCatalog.Opponents;
             Assert.GreaterOrEqual(opponents.Count, 5);
             for (var i = 0; i < opponents.Count; i++)
             {
                 Assert.AreNotEqual(CreatureKind.Slime, opponents[i].Kind);
+                Assert.IsFalse(CreatureCatalog.IsRetired(opponents[i].Kind));
             }
+
+            Assert.IsTrue(CreatureCatalog.IsRetired(CreatureKind.Rat));
+            Assert.IsTrue(CreatureCatalog.IsRetired(CreatureKind.Cat));
+            Assert.IsTrue(CreatureCatalog.IsRetired(CreatureKind.Dog));
+            Assert.IsTrue(CreatureCatalog.IsRetired(CreatureKind.Scorpion));
         }
 
         [Test]

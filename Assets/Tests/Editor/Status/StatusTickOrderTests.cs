@@ -51,7 +51,7 @@ namespace SlimesRevenge.Tests
             slime.Volume.Clear();
             slime.Volume.Add(new Blood());
             slime.SetMaxHitPoints(0);
-            slime.RefreshVolumeStatuses();
+            slime.ClearAllStatuses();
             slime.AddStatus(new Burning());
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
@@ -75,7 +75,7 @@ namespace SlimesRevenge.Tests
             slime.Volume.Clear();
             slime.Volume.Add(new Blood());
             slime.SetMaxHitPoints(0);
-            slime.RefreshVolumeStatuses();
+            slime.ClearAllStatuses();
             slime.AddStatus(new Burning());
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
@@ -96,14 +96,11 @@ namespace SlimesRevenge.Tests
             var slime = SpawnObject("Slime").AddComponent<Slime>();
             slime.PlaceOn(new Vector2Int(4, 0));
             slime.Volume.Clear();
+            slime.Volume.Add(new Blood());
             slime.SetMaxHitPoints(0);
-            slime.RefreshVolumeStatuses();
+            slime.ClearAllStatuses();
 
-            var dog = SpawnObject("Dog").AddComponent<Dog>();
-            dog.PlaceOn(new Vector2Int(5, 0));
-            Dog.FillStarting(dog.Volume);
-            dog.SetSpeed(2);
-            dog.SetMaxHitPoints(10);
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(5, 0));
             dog.MarkAggro();
 
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();

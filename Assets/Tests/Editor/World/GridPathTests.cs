@@ -7,7 +7,7 @@ namespace SlimesRevenge.Tests
     public class GridPathTests
     {
         [Test]
-        public void WallOfThreeCats_ForcesADetourAroundTheBlock()
+        public void WallOfThreeEnemies_ForcesADetourAroundTheBlock()
         {
             var world = World.CreateGrass();
             var slime = new Vector2Int(1, 5);
@@ -41,7 +41,7 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void WallOfFiveCats_StillHasADetourAroundTheBlock()
+        public void WallOfFiveEnemies_StillHasADetourAroundTheBlock()
         {
             var world = World.CreateGrass();
             var slime = new Vector2Int(1, 5);

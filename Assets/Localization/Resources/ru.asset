@@ -474,3 +474,23 @@ MonoBehaviour:
     m_Localized: "Кампания начата в режиме {0}"
     m_Metadata:
       m_Items: []
+  - m_Id: 118
+    m_Localized: Мухомор
+    m_Metadata:
+      m_Items: []
+  - m_Id: 119
+    m_Localized: Водяной
+    m_Metadata:
+      m_Items: []
+  - m_Id: 120
+    m_Localized: Кактус
+    m_Metadata:
+      m_Items: []
+  - m_Id: 121
+    m_Localized: Мандрагора
+    m_Metadata:
+      m_Items: []
+  - m_Id: 122
+    m_Localized: Ай
+    m_Metadata:
+      m_Items: []

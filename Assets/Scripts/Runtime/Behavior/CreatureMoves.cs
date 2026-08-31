@@ -179,6 +179,7 @@ namespace SlimesRevenge
                 case CreatureIntent.Wander:
                     return TryWander(self, session, rng);
                 case CreatureIntent.Idle:
+                    CreatureSpriteAnimator.PlayIdle(self);
                     return true;
                 default:
                     return false;
@@ -206,6 +207,7 @@ namespace SlimesRevenge
 
             self.PlaceOn(to);
             session.World.Floor.ApplyContact(self);
+            CreatureSpriteAnimator.PlayWalk(self, to);
             return true;
         }
 

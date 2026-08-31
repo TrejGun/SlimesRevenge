@@ -25,10 +25,10 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void CenterSlime_StepsIntoRatOnTheRight_DoesNotMove()
+        public void CenterSlime_StepsIntoEnemyOnTheRight_DoesNotMove()
         {
-            var rat = new Vector2Int(2, 1);
-            var session = OpenArena(new Vector2Int(1, 1), rat);
+            var enemy = new Vector2Int(2, 1);
+            var session = OpenArena(new Vector2Int(1, 1), enemy);
 
             Assert.IsFalse(Press(session, KeyCode.D));
             Assert.AreEqual(new Vector2Int(1, 1), session.ControlledCell);

@@ -52,8 +52,8 @@ namespace SlimesRevenge.Tests
         {
             var player = Spawn<Slime>(new Vector2Int(4, 4));
             var rat = Spawn<Rat>(new Vector2Int(5, 4));
-            var dog = Spawn<Dog>(new Vector2Int(6, 4));
-            var cat = Spawn<Cat>(new Vector2Int(5, 5));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(6, 4));
+            var cat = TestCreatures.Passive(spawned, new Vector2Int(5, 5));
             var session = Occupied(World.CreateGrass(), player, rat, dog, cat);
             var rng = new FixedRng();
 

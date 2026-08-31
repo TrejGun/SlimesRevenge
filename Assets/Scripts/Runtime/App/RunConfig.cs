@@ -178,7 +178,7 @@ namespace SlimesRevenge
 
             if (!Enum.TryParse(parts[1], out CreatureKind opponent))
             {
-                opponent = CreatureKind.Rat;
+                opponent = CreatureKind.Bat;
             }
 
             Substance[] loadout = null;

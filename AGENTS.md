@@ -10,7 +10,7 @@ Assets/
     Runtime/              # Gameplay (one asmdef: SlimesRevenge.Runtime)
       App/                # Menu, action log, popups, cards, run config
       Behavior/           # Unity Behavior graphs + Decide / Hunt / Moves
-      Creatures/          # Slime, Rat, Cat, Dog, Bat, Scorpion, catalogs
+      Creatures/          # Slime, Bat, pack enemies, catalogs (retired: Rat/Cat/Dog/Scorpion)
       Localization/       # I18n + TextKey
       Status/             # StatusEffect hierarchy (innate / body / timed)
       Turns/              # GameSession, TurnManager, Combat, cell menu
@@ -48,6 +48,8 @@ Project rules live in [`.cursor/rules/`](.cursor/rules/). Open or edit matching 
 | --- | --- |
 | [`.cursor/rules/behavior-astar-architecture.mdc`](.cursor/rules/behavior-astar-architecture.mdc) | Mob turn AI: **Unity Behavior** chooses *what*, **A* Pathfinding Project** chooses *where*. No DIY chase heuristics. |
 | [`.cursor/rules/dependency-inversion.mdc`](.cursor/rules/dependency-inversion.mdc) | Statuses apply via hooks; board/occupied does not require a controlled player. |
+| [`.cursor/rules/fdr-enemy-sprite-generation.mdc`](.cursor/rules/fdr-enemy-sprite-generation.mdc) | FDR enemy sheets: GenerateImage + verbatim rat prompt; larger raster OK. |
+| [`.cursor/rules/play-mode-unity.mdc`](.cursor/rules/play-mode-unity.mdc) | Play Mode: `open -na`, never a child of the agent shell. |
 
 ## Board vs controlled
 
@@ -79,9 +81,11 @@ Override with `UNITY_EDITOR` for builds (`scripts/build.sh`).
 
 **Always** use these scripts. Do **not** invoke Unity `-executeMethod` by hand or scrape `Logs/play-*.log` to decide if Play Mode is up — `play.sh` already waits for readiness and returns an exit code.
 
+The Cursor **agent shell is not a place to own the editor**. Starting `Unity &` there dies with the turn (SIGHUP) while stdout still said `READY`. `play.sh` therefore launches via **`open -na` Unity.app** (LaunchServices), outside that shell. Rule: [`.cursor/rules/play-mode-unity.mdc`](.cursor/rules/play-mode-unity.mdc). If the user says Unity is not open, believe them and run `play.sh` again.
+
 ```bash
 ./scripts/play.sh              # Splash → Main menu
-./scripts/play.sh --duel       # Game duel (Rat, default water loadout)
+./scripts/play.sh --duel       # Game duel (Bat, default water loadout)
 ./scripts/play.sh --campaign   # Game campaign (10×10, full cast)
 ./scripts/stop.sh              # quit this project's Unity Editor (finds by -projectPath; no PID file)
 ```
@@ -106,6 +110,7 @@ Override with `UNITY_EDITOR` for builds (`scripts/build.sh`).
 Agent rules:
 - After `./scripts/play.sh …`, trust exit `0` + the `READY:` line. Do **not** poll Unity logs yourself.
 - After `./scripts/stop.sh`, trust exit `0` + `STOPPED:`. Do **not** `pgrep` / scrape logs to double-check.
+- If the **user** says Play Mode / the editor is not open, that overrides `READY` from an earlier turn. Run `play.sh` again. Do not argue from `pgrep`.
 
 ## Setup
 
@@ -168,7 +173,7 @@ Useful focused suites while touching AI / pathfinding:
 | --- | --- |
 | `SlimesRevenge.Tests.BehaviorRulesTests` | Duel approach / personality contract |
 | `SlimesRevenge.Tests.BehaviorGraphBindOwnerProofTests` | Behavior bind / Actor |
-| `SlimesRevenge.Tests.DogCatHuntSimulationTests` | Corridor / maze / DoT doors |
+| `SlimesRevenge.Tests.EnemyHuntSimulationTests` | Corridor / maze / DoT doors |
 | `SlimesRevenge.Tests.GridPathTests` | A* grid paths |
 | `SlimesRevenge.Tests.PathfindingPursuitTests` | Pursuit memory, puddle penalties |
 

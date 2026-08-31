@@ -1,9 +1,23 @@
 using NUnit.Framework;
+using UnityEditor;
+using UnityEngine;
 
 namespace SlimesRevenge.Tests
 {
     public class SlimeAppearanceTests
     {
+        [SetUp]
+        public void SetUp()
+        {
+            SlimeSprites.ResetCacheForTests();
+        }
+
+        [TearDown]
+        public void TearDown()
+        {
+            SlimeSprites.ResetCacheForTests();
+        }
+
         [Test]
         public void FromVolume_EachSubstance_MapsToOwnLook()
         {
@@ -36,6 +50,43 @@ namespace SlimesRevenge.Tests
             var volume = new Volume();
             volume.Fill(new Water(), new Water(), new Poison(), new Poison());
             Assert.AreEqual(SlimeLook.Water, SlimeAppearance.FromVolume(volume));
+        }
+
+        [Test]
+        public void Walk_WaterEast_MatchesFdrRightRow()
+        {
+            Sprite water0 = null;
+            Sprite water32 = null;
+            Sprite water33 = null;
+            var assets = AssetDatabase.LoadAllAssetsAtPath("Assets/Art/Slimes/Water.png");
+            for (var i = 0; i < assets.Length; i++)
+            {
+                if (assets[i] is not Sprite sprite)
+                {
+                    continue;
+                }
+
+                if (sprite.name == "Water_0")
+                {
+                    water0 = sprite;
+                }
+                else if (sprite.name == "Water_32")
+                {
+                    water32 = sprite;
+                }
+                else if (sprite.name == "Water_33")
+                {
+                    water33 = sprite;
+                }
+            }
+
+            Assert.IsNotNull(water0);
+            Assert.IsNotNull(water32);
+            Assert.IsNotNull(water33);
+            var frames = SlimeSprites.Walk(water0, WalkFacing.East);
+            Assert.AreEqual(FdrSheetLayout.WalkFrameCount, frames.Length);
+            Assert.AreEqual(water32.rect, frames[0].rect);
+            Assert.AreEqual(water33.rect, frames[1].rect);
         }
 
         private static Volume Filled(params Substance[] substances)

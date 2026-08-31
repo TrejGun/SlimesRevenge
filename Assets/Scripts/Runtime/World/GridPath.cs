@@ -229,7 +229,12 @@ namespace SlimesRevenge
                 }
 
                 var cells = ToCells(start, ab.path);
-                if (cells == null || cells.Count == 0 || !IsContiguousFrom(start, cells))
+                if (
+                    cells == null
+                    || cells.Count == 0
+                    || !IsContiguousFrom(start, cells)
+                    || !goals.Contains(cells[cells.Count - 1])
+                )
                 {
                     continue;
                 }

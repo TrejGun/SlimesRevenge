@@ -156,22 +156,47 @@ namespace SlimesRevenge
             var center = Map.Center;
             Paint(paintPath: false, center);
             Place(slime, center);
-            Place(rat, center + Vector2Int.right);
-            Place(cat, center + Vector2Int.right + Vector2Int.up);
-            Place(dog, center + Vector2Int.right + Vector2Int.down);
-            bat = EnsureBeast(bat, "Bat", batSprite, center + Vector2Int.left);
-            scorpion = EnsureBeast(
-                scorpion,
-                "Scorpion",
-                scorpionSprite,
-                center + Vector2Int.left + Vector2Int.up
-            );
+            DisableCreature(rat);
+            DisableCreature(cat);
+            DisableCreature(dog);
+            DisableCreature(bat);
+            DisableCreature(scorpion);
+
+            var offsets = new[]
+            {
+                Vector2Int.right,
+                Vector2Int.left,
+                Vector2Int.right + Vector2Int.up,
+                Vector2Int.right + Vector2Int.down,
+                Vector2Int.left + Vector2Int.up,
+                Vector2Int.left + Vector2Int.down,
+            };
+            var opponents = CreatureCatalog.Opponents;
+            var spawned = new List<Creature>(opponents.Count);
+            for (var i = 0; i < opponents.Count; i++)
+            {
+                var cell = center + offsets[i % offsets.Length];
+                var foe = SpawnFromCatalog(opponents[i].Kind, cell);
+                if (foe == null)
+                {
+                    continue;
+                }
+
+                CreatureSpriteAnimator.PlayWalk(foe, center);
+                spawned.Add(foe);
+            }
+
+            if (slime != null)
+            {
+                slime.Face(center + Vector2Int.right);
+                slime.ApplyAppearance();
+            }
 
             if (turnManager != null && slime != null)
             {
                 turnManager.TrySoftcoreContinue = () =>
                     SoftcoreRevive.TryContinue(turnManager, slime, Map);
-                turnManager.Bind(Map, slime, rat, cat, dog, bat, scorpion);
+                turnManager.Bind(Map, slime, spawned.ToArray());
             }
         }
 
@@ -196,6 +221,11 @@ namespace SlimesRevenge
             DisableCreature(scorpion);
 
             var foe = SpawnOpponent(run.Opponent, foeCell);
+            if (slime != null)
+            {
+                slime.Face(foeCell);
+                slime.ApplyAppearance();
+            }
             if (turnManager != null && slime != null && foe != null)
             {
                 turnManager.TrySoftcoreContinue = () =>
@@ -210,20 +240,32 @@ namespace SlimesRevenge
             {
                 case CreatureKind.Rat:
                     EnableAndPlace(rat, cell);
+                    CreatureSpriteAnimator.PlayWalk(
+                        rat,
+                        slime != null ? slime.Cell : cell + Vector2Int.left
+                    );
                     return rat;
                 case CreatureKind.Cat:
                     EnableAndPlace(cat, cell);
+                    CreatureSpriteAnimator.PlayWalk(
+                        cat,
+                        slime != null ? slime.Cell : cell + Vector2Int.left
+                    );
                     return cat;
                 case CreatureKind.Dog:
                     EnableAndPlace(dog, cell);
+                    CreatureSpriteAnimator.PlayWalk(
+                        dog,
+                        slime != null ? slime.Cell : cell + Vector2Int.left
+                    );
                     return dog;
-                case CreatureKind.Bat:
-                    bat = EnsureBeast(bat, "Bat", batSprite, cell);
-                    EnableAndPlace(bat, cell);
-                    return bat;
                 case CreatureKind.Scorpion:
-                    scorpion = EnsureBeast(scorpion, "Scorpion", scorpionSprite, cell);
+                    scorpion = EnsureEnemy(scorpion, "Scorpion", scorpionSprite, cell);
                     EnableAndPlace(scorpion, cell);
+                    CreatureSpriteAnimator.PlayWalk(
+                        scorpion,
+                        slime != null ? slime.Cell : cell + Vector2Int.left
+                    );
                     return scorpion;
                 default:
                     return SpawnFromCatalog(kind, cell);
@@ -247,12 +289,20 @@ namespace SlimesRevenge
             }
 
             var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = batSprite != null ? batSprite : scorpionSprite;
+            var idle = CreatureSheet.Clip(kind, WalkFacing.South, FdrClip.Idle);
+            renderer.sprite =
+                idle != null && idle.Length > 0 ? idle[0]
+                : batSprite != null ? batSprite
+                : scorpionSprite;
             renderer.sortingOrder = 10;
             var collider = go.AddComponent<CircleCollider2D>();
             collider.isTrigger = true;
             collider.radius = 0.45f;
             Place(creature, cell);
+            CreatureSpriteAnimator.PlayWalk(
+                creature,
+                slime != null ? slime.Cell : cell + Vector2Int.left
+            );
             return creature;
         }
 
@@ -512,7 +562,7 @@ namespace SlimesRevenge
             }
         }
 
-        private static T EnsureBeast<T>(T existing, string name, Sprite sprite, Vector2Int cell)
+        private static T EnsureEnemy<T>(T existing, string name, Sprite sprite, Vector2Int cell)
             where T : Creature
         {
             if (existing != null)

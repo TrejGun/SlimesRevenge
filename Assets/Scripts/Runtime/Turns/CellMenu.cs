@@ -274,6 +274,7 @@ namespace SlimesRevenge
         private void BuildCanvas()
         {
             var root = new GameObject("CellMenu");
+            root.transform.SetParent(transform, false);
             canvas = root.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 200;
@@ -425,9 +426,18 @@ namespace SlimesRevenge
 
         private void OnDestroy()
         {
-            if (canvas != null)
+            if (canvas == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
             {
                 Destroy(canvas.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(canvas.gameObject);
             }
         }
     }

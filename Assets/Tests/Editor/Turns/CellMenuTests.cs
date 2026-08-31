@@ -53,9 +53,7 @@ namespace SlimesRevenge.Tests
             var slimeCell = Vector2Int.zero;
             var foeCell = Vector2Int.right;
             var slime = SpawnSlime(slimeCell, 1);
-            var rat = SpawnObject("Rat").AddComponent<Rat>();
-            rat.PlaceOn(foeCell);
-            rat.SetMaxHitPoints(3);
+            var rat = TestCreatures.Cowardly(spawned, foeCell);
 
             Assert.IsFalse(slime.Volume.CanSpend);
             Assert.IsTrue(slime.IsAlive);
@@ -91,9 +89,7 @@ namespace SlimesRevenge.Tests
             var slimeCell = Vector2Int.zero;
             var foeCell = Vector2Int.right;
             var slime = SpawnSlime(slimeCell, 2);
-            var rat = SpawnObject("Rat").AddComponent<Rat>();
-            rat.PlaceOn(foeCell);
-            rat.SetMaxHitPoints(3);
+            var rat = TestCreatures.Cowardly(spawned, foeCell);
 
             var menu = SpawnObject("Menu").AddComponent<CellMenu>();
             menu.Open(
@@ -112,9 +108,7 @@ namespace SlimesRevenge.Tests
             var slimeCell = Vector2Int.zero;
             var foeCell = new Vector2Int(1, 1);
             var slime = SpawnSlime(slimeCell, 2);
-            var dog = SpawnObject("Dog").AddComponent<Dog>();
-            dog.PlaceOn(foeCell);
-            dog.SetMaxHitPoints(10);
+            var dog = TestCreatures.Body(spawned, foeCell).WithHp(10);
 
             var menu = SpawnObject("Menu").AddComponent<CellMenu>();
             menu.Open(
@@ -182,10 +176,7 @@ namespace SlimesRevenge.Tests
             turns.Rng = new FixedRng();
             turns.Bind(world, slime);
 
-            var rat = SpawnObject("Rat").AddComponent<Rat>();
-            rat.PlaceOn(cell);
-            rat.Volume.Clear();
-            Rat.FillStarting(rat.Volume);
+            var rat = TestCreatures.Cowardly(spawned, cell);
             rat.BecomeCorpse();
             world.Floor.AddCorpse(rat);
 
@@ -206,9 +197,7 @@ namespace SlimesRevenge.Tests
             var slimeCell = Vector2Int.zero;
             var foeCell = Vector2Int.right;
             var slime = SpawnSlime(slimeCell, 1);
-            var rat = SpawnObject("Rat").AddComponent<Rat>();
-            rat.PlaceOn(foeCell);
-            rat.SetMaxHitPoints(3);
+            var rat = TestCreatures.Cowardly(spawned, foeCell);
             rat.AddStatus(new Wet());
 
             var menu = SpawnObject("Menu").AddComponent<CellMenu>();

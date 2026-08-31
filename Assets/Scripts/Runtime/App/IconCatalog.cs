@@ -111,6 +111,11 @@ namespace SlimesRevenge
                 CreatureKind.Dog => new Color(0.55f, 0.4f, 0.25f),
                 CreatureKind.Bat => new Color(0.35f, 0.3f, 0.45f),
                 CreatureKind.Scorpion => new Color(0.7f, 0.45f, 0.15f),
+                CreatureKind.Mushroom => new Color(0.75f, 0.2f, 0.2f),
+                CreatureKind.WaterElement => new Color(0.35f, 0.65f, 0.9f),
+                CreatureKind.Cactus => new Color(0.35f, 0.7f, 0.3f),
+                CreatureKind.Mandragora => new Color(0.45f, 0.55f, 0.25f),
+                CreatureKind.Eye => new Color(0.7f, 0.15f, 0.15f),
                 _ => new Color(0.4f, 0.7f, 0.4f),
             };
 

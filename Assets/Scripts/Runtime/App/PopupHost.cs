@@ -72,7 +72,10 @@ namespace SlimesRevenge
                 return Instance;
             }
 
-            return new GameObject("PopupHost").AddComponent<PopupHost>();
+            var host = new GameObject("PopupHost").AddComponent<PopupHost>();
+            Instance = host;
+            host.EnsureUi();
+            return host;
         }
 
         private void Awake()
@@ -89,10 +92,7 @@ namespace SlimesRevenge
                 Instance = null;
             }
 
-            if (canvas != null)
-            {
-                Destroy(canvas.gameObject);
-            }
+            canvas = null;
         }
 
         public void Push(IPopupContent content)
@@ -207,7 +207,8 @@ namespace SlimesRevenge
 
             CardUi.Font = font;
 
-            var root = new GameObject("PopupHost");
+            var root = new GameObject("PopupCanvas");
+            root.transform.SetParent(transform, false);
             canvas = root.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 220;

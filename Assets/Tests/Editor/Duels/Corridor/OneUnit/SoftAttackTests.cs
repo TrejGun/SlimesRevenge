@@ -3,37 +3,40 @@ using NUnit.Framework;
 
 namespace SlimesRevenge.Tests.Duels.Corridor.OneUnit
 {
-    /// <summary>1 unit soft attack (Water/Blood): slime dies to the bite; beast at MaxHitPoints−1.</summary>
+    /// <summary>1 unit soft attack (Water/Blood): slime dies to the bite; enemy at MaxHitPoints−1.</summary>
     public class SoftAttackTests : DuelFixture
     {
         public static IEnumerable<TestCaseData> Cases()
         {
-            yield return Case(new Water(), typeof(Rat), 2);
-            yield return Case(new Water(), typeof(Cat), 4);
-            yield return Case(new Water(), typeof(Dog), 9);
-            yield return Case(new Blood(), typeof(Rat), 2);
-            yield return Case(new Blood(), typeof(Cat), 4);
-            yield return Case(new Blood(), typeof(Dog), 9);
+            yield return Case(new Water(), TestFoePreset.Cowardly, 2);
+            yield return Case(new Water(), TestFoePreset.Passive, 4);
+            yield return Case(new Water(), TestFoePreset.Aggressive, 9);
+            yield return Case(new Blood(), TestFoePreset.Cowardly, 2);
+            yield return Case(new Blood(), TestFoePreset.Passive, 4);
+            yield return Case(new Blood(), TestFoePreset.Aggressive, 9);
         }
 
         [TestCaseSource(nameof(Cases))]
-        public void SoftAttack_SlimeDiesBeastLives(
+        public void SoftAttack_SlimeDiesEnemyLives(
             Substance substance,
-            System.Type beastType,
+            TestFoePreset foe,
             int expectedHitPoints
         )
         {
-            var duel = StartCorridorDuel(beastType, substance);
+            var duel =
+                substance is Blood
+                    ? StartCorridorDuel(foe, substance)
+                    : StartCorridorDuel(foe, substance, Clone(substance));
             Assert.IsTrue(duel.Turns.TryAttack(CorridorFoeCell, Clone(substance)));
             Assert.IsFalse(duel.Slime.IsAlive);
-            Assert.IsTrue(duel.Beast.IsAlive);
-            Assert.AreEqual(expectedHitPoints, duel.Beast.HitPoints);
+            Assert.IsTrue(duel.Enemy.IsAlive);
+            Assert.AreEqual(expectedHitPoints, duel.Enemy.HitPoints);
         }
 
-        private static TestCaseData Case(Substance substance, System.Type beastType, int hits)
+        private static TestCaseData Case(Substance substance, TestFoePreset foe, int hits)
         {
-            return new TestCaseData(substance, beastType, hits).SetName(
-                $"{substance.GetType().Name}_{beastType.Name}"
+            return new TestCaseData(substance, foe, hits).SetName(
+                $"{substance.GetType().Name}_{foe}"
             );
         }
     }

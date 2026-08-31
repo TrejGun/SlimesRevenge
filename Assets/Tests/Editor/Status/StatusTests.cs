@@ -57,7 +57,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Water_OnBurningCorrodingAndPoisoned_ClearsFireAndAcidKeepsPoison_NoWet()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.AddStatus(new Burning());
             dog.AddStatus(new Poisoned());
             dog.AddStatus(new Corroding());
@@ -73,7 +73,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Water_OnPoisonedOnly_KeepsPoison_AndAppliesWet()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.AddStatus(new Poisoned());
 
             new Water().Apply(dog);
@@ -104,7 +104,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Lava_OnWet_ClearsWetWithoutBurning()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.AddStatus(new Wet());
             new Lava().Apply(dog);
             Assert.IsNull(dog.FindStatus<Burning>());
@@ -115,7 +115,7 @@ namespace SlimesRevenge.Tests
         public void Oil_AppliesInstabilityAndFlammable_ForThreeTurns()
         {
             var slime = Spawn<Slime>(Vector2Int.zero);
-            var dog = Spawn<Dog>(Vector2Int.right);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.right);
             Assert.AreEqual(2, dog.Speed);
             Assert.IsTrue(Combat.Attack(slime, dog, new Oil()));
             Assert.AreEqual(3, dog.Volume.UnitCount);
@@ -132,7 +132,7 @@ namespace SlimesRevenge.Tests
         {
             var origin = new Vector2Int(4, 4);
             var player = Spawn<Slime>(new Vector2Int(4, 0));
-            var cat = Spawn<Cat>(origin);
+            var cat = TestCreatures.Passive(spawned, origin);
             var session = SessionFactory.WithControlled(World.CreateGrass(), player, cat);
             Assert.IsTrue(Combat.Attack(player, cat, new Oil()));
             Assert.AreEqual(0, cat.Speed);
@@ -141,13 +141,13 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void ThreeLavas_StackThreeBurningOnDog()
+        public void ThreeLavas_StackThreeBurningOnEnemy()
         {
             var slime = Spawn<Slime>(Vector2Int.zero);
             slime.Volume.Clear();
             slime.Volume.Fill(new Lava(), new Lava(), new Lava());
             slime.RefreshVolumeStatuses();
-            var dog = Spawn<Dog>(Vector2Int.right);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.right);
 
             Assert.IsTrue(Combat.Attack(slime, dog, new Lava()));
             Assert.IsTrue(Combat.Attack(slime, dog, new Lava()));
@@ -159,7 +159,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Flammable_DoublesBurningPulse()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.AddStatus(new Flammable());
             dog.AddStatus(new Burning());
             var before = dog.HitPoints;
@@ -170,7 +170,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Water_ClearsAllBurning_KeepsOilStatuses()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             dog.AddStatus(new Burning());
             new Oil().Apply(dog);
             new Oil().Apply(dog);
@@ -186,7 +186,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Poison_DoesNotConvertBlood()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             Assert.AreEqual(3, dog.Volume.UnitCount);
             new Poison().Apply(dog);
             Assert.AreEqual(3, Count<Blood>(dog));
@@ -197,20 +197,20 @@ namespace SlimesRevenge.Tests
         [Test]
         public void Acid_DoesNotConvertBlood()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             new Acid().Apply(dog);
             Assert.AreEqual(3, Count<Blood>(dog));
             Assert.IsNotNull(dog.FindStatus<Corroding>());
         }
 
         [Test]
-        public void Dog_SurvivesPoisonStatus()
+        public void Enemy_SurvivesPoisonStatus()
         {
             AssertDogSurvives(new Poison(), 6);
         }
 
         [Test]
-        public void Dog_SurvivesAcidStatus()
+        public void Enemy_SurvivesAcidStatus()
         {
             AssertDogSurvives(new Acid(), 6);
         }
@@ -234,7 +234,7 @@ namespace SlimesRevenge.Tests
         private void AssertDogSurvives(Substance substance, int expectedHitPoints)
         {
             var player = Spawn<Slime>(new Vector2Int(1, 1));
-            var dog = Spawn<Dog>(new Vector2Int(2, 1));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(2, 1));
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
             turns.Bind(World.CreateGrass(3), player, dog);

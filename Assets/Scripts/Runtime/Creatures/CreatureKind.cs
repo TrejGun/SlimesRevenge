@@ -8,5 +8,10 @@ namespace SlimesRevenge
         Dog,
         Bat,
         Scorpion,
+        Mushroom,
+        WaterElement,
+        Cactus,
+        Mandragora,
+        Eye,
     }
 }

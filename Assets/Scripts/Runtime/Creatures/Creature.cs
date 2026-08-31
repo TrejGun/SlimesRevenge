@@ -346,6 +346,10 @@ namespace SlimesRevenge
             var before = HitPoints;
             HitPoints = Mathf.Max(0, HitPoints - amount);
             applied = before - HitPoints;
+            if (applied > 0 && HitPoints > 0)
+            {
+                CreatureSpriteAnimator.PlayDamage(this);
+            }
         }
 
         public int Heal(int amount)
@@ -486,6 +490,7 @@ namespace SlimesRevenge
             ClearAggro();
             ClearPursuit();
             ClearFlee();
+            CreatureSpriteAnimator.PlayDeath(this);
         }
 
         public void TickCorpseDecay()

@@ -143,7 +143,8 @@ namespace SlimesRevenge
             Vector2 anchoredPos,
             Action action,
             float width = ChipWidth,
-            float height = ChipHeight
+            float height = ChipHeight,
+            float iconSize = 56f
         )
         {
             var row = new GameObject(caption).AddComponent<RectTransform>();
@@ -167,14 +168,14 @@ namespace SlimesRevenge
             iconGo.anchorMin = new Vector2(0.5f, 0.48f);
             iconGo.anchorMax = new Vector2(0.5f, 0.48f);
             iconGo.pivot = new Vector2(0.5f, 0.5f);
-            iconGo.sizeDelta = new Vector2(56f, 56f);
+            iconGo.sizeDelta = new Vector2(iconSize, iconSize);
             var iconImage = iconGo.gameObject.AddComponent<Image>();
             iconImage.preserveAspect = true;
             iconImage.raycastTarget = false;
 
             if (animFrames != null && animFrames.Length > 0)
             {
-                var anim = iconGo.gameObject.AddComponent<UiSpriteAnimator>();
+                var anim = iconGo.gameObject.AddComponent<CreatureSpriteAnimator>();
                 anim.Play(animFrames);
             }
             else if (staticIcon != null)

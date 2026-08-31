@@ -75,7 +75,8 @@ namespace SlimesRevenge
                 font = Font.CreateDynamicFontFromOSFont("Helvetica", 18);
             }
 
-            var root = new GameObject("GameOverScreen");
+            var root = new GameObject("GameOverCanvas");
+            root.transform.SetParent(transform, false);
             canvas = root.AddComponent<Canvas>();
             canvas.renderMode = RenderMode.ScreenSpaceOverlay;
             canvas.sortingOrder = 300;
@@ -167,7 +168,14 @@ namespace SlimesRevenge
             {
                 var child = panel.GetChild(i).gameObject;
                 child.transform.SetParent(null, false);
-                Destroy(child);
+                if (Application.isPlaying)
+                {
+                    Destroy(child);
+                }
+                else
+                {
+                    DestroyImmediate(child);
+                }
             }
         }
 
@@ -193,9 +201,18 @@ namespace SlimesRevenge
 
         private void OnDestroy()
         {
-            if (canvas != null)
+            if (canvas == null)
+            {
+                return;
+            }
+
+            if (Application.isPlaying)
             {
                 Destroy(canvas.gameObject);
+            }
+            else
+            {
+                DestroyImmediate(canvas.gameObject);
             }
         }
     }

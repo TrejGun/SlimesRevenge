@@ -197,4 +197,4 @@ dog.TakeTurn(session, player: null, rng, others);
 - [ ] Walk still goes through `GridPath` → A* Pathfinding Project.
 - [ ] No new neighbor-ring / BestToward / Filtered chase picker.
 - [ ] Temp `AstarPath` host destroyed; paths contiguous from the real start node.
-- [ ] Focused EditMode: `BehaviorRulesTests`, `GridPathTests`, `DogCatHuntSimulationTests` as relevant.
+- [ ] Focused EditMode: `BehaviorRulesTests`, `GridPathTests`, `EnemyHuntSimulationTests` as relevant.

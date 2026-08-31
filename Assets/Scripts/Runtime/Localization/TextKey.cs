@@ -115,6 +115,11 @@ namespace SlimesRevenge
         public const string CreatureDog = "creature.dog";
         public const string CreatureBat = "creature.bat";
         public const string CreatureScorpion = "creature.scorpion";
+        public const string CreatureMushroom = "creature.mushroom";
+        public const string CreatureWaterElement = "creature.water_element";
+        public const string CreatureCactus = "creature.cactus";
+        public const string CreatureMandragora = "creature.mandragora";
+        public const string CreatureEye = "creature.eye";
 
         public static string ForCreature(CreatureKind kind)
         {
@@ -132,6 +137,16 @@ namespace SlimesRevenge
                     return CreatureBat;
                 case CreatureKind.Scorpion:
                     return CreatureScorpion;
+                case CreatureKind.Mushroom:
+                    return CreatureMushroom;
+                case CreatureKind.WaterElement:
+                    return CreatureWaterElement;
+                case CreatureKind.Cactus:
+                    return CreatureCactus;
+                case CreatureKind.Mandragora:
+                    return CreatureMandragora;
+                case CreatureKind.Eye:
+                    return CreatureEye;
                 default:
                     return CreatureSlime;
             }
@@ -252,6 +267,11 @@ namespace SlimesRevenge
             CreatureDog,
             CreatureBat,
             CreatureScorpion,
+            CreatureMushroom,
+            CreatureWaterElement,
+            CreatureCactus,
+            CreatureMandragora,
+            CreatureEye,
         };
     }
 }

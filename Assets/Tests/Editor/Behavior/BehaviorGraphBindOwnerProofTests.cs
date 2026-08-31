@@ -177,15 +177,9 @@ namespace SlimesRevenge.Tests
             );
         }
 
-        private Dog SpawnDog(Vector2Int cell)
+        private TestCreature SpawnDog(Vector2Int cell)
         {
-            var dog = SpawnObject("Dog").AddComponent<Dog>();
-            dog.PlaceOn(cell);
-            Dog.FillStarting(dog.Volume);
-            dog.SetSpeed(2);
-            dog.SetMaxHitPoints(10);
-            dog.EnsureInnateTraits();
-            return dog;
+            return TestCreatures.Aggressive(spawned, cell);
         }
 
         private Slime SpawnSlime(Vector2Int cell)

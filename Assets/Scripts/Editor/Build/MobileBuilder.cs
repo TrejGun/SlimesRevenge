@@ -41,10 +41,10 @@ namespace SlimesRevenge.Editor
             PlayScene("Assets/Scenes/Game.unity");
         }
 
-        /// <summary>Duel vs Rat with default water loadout (skips splash/menu).</summary>
+        /// <summary>Duel vs Bat with default water loadout (skips splash/menu).</summary>
         public static void PlayDuel()
         {
-            RunConfig.SetDuel(CreatureKind.Rat, RunConfig.DefaultWaterLoadout());
+            RunConfig.SetDuel(CreatureKind.Bat, RunConfig.DefaultWaterLoadout());
             PlayScene("Assets/Scenes/Game.unity");
         }
 

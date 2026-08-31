@@ -471,6 +471,26 @@ MonoBehaviour:
     m_Key: log.campaign_started
     m_Metadata:
       m_Items: []
+  - m_Id: 118
+    m_Key: creature.mushroom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 119
+    m_Key: creature.water_element
+    m_Metadata:
+      m_Items: []
+  - m_Id: 120
+    m_Key: creature.cactus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 121
+    m_Key: creature.mandragora
+    m_Metadata:
+      m_Items: []
+  - m_Id: 122
+    m_Key: creature.eye
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

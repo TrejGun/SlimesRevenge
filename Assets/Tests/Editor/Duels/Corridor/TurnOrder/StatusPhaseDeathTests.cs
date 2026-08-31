@@ -13,7 +13,7 @@ namespace SlimesRevenge.Tests.Duels.Corridor.TurnOrder
         public void StatusDeath_SkipsActAndVacatesCell()
         {
             var slime = SpawnFilled(CorridorSlimeCell, new Water(), 6);
-            var rat = Spawn<Rat>(CorridorFoeCell);
+            var rat = Cowardly(CorridorFoeCell);
             rat.SetMaxHitPoints(1);
             rat.AddStatus(new Burning());
             var turns = Bind(Corridor(), slime, rat);
@@ -30,10 +30,10 @@ namespace SlimesRevenge.Tests.Duels.Corridor.TurnOrder
         public void StatusDeath_AllowsNextCreatureToEnterVacatedCellSameRound()
         {
             var slime = SpawnSlimeWith(CorridorSlimeCell, new Water());
-            var rat = Spawn<Rat>(CorridorFoeCell);
+            var rat = Cowardly(CorridorFoeCell);
             rat.SetMaxHitPoints(1);
             rat.AddStatus(new Burning());
-            var dog = Spawn<Dog>(new Vector2Int(7, 0));
+            var dog = Aggressive(new Vector2Int(7, 0));
             var turns = Bind(Corridor(), slime, rat, dog);
 
             Assert.IsTrue(turns.TryWait());

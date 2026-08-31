@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Launch Unity Editor Play Mode for Slime's Revenge, wait until ready, then exit.
-# Unity keeps running in the background. Exit 0 = ready; non-zero = failed.
+# Unity keeps running as a normal GUI app. Exit 0 = ready; non-zero = failed.
 #
 # Usage:
 #   ./scripts/play.sh              # Splash → Main menu
@@ -8,8 +8,13 @@
 #   ./scripts/play.sh --campaign   # default campaign
 #
 # Env:
-#   UNITY_EDITOR         override Unity binary
+#   UNITY_EDITOR         override Unity binary (…/Unity.app/Contents/MacOS/Unity)
 #   PLAY_READY_MAX_SEC   max seconds to wait (default 300); polls once per second
+#
+# Cursor agents: this script must start the editor with `open -na` (LaunchServices),
+# never as `Unity &` in the agent tool shell. That shell dies at the end of the turn
+# and SIGHUP would take Unity with it — stdout READY is then a lie. See AGENTS.md
+# and .cursor/rules/play-mode-unity.mdc.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -67,26 +72,18 @@ mkdir -p Logs
 rm -f Temp/UnityLockfile "$LOG"
 rm -rf Temp/__Backupscenes Assets/_Recovery
 
-"$UNITY" \
+# GUI app via LaunchServices — not a child of the caller (Cursor agent) shell.
+UNITY_APP="$(cd "$(dirname "$UNITY")/../.." && pwd)"
+open -na "$UNITY_APP" --args \
   -projectPath "$ROOT" \
   -executeMethod "$METHOD" \
-  -logFile "$LOG" &
-UNITY_PID=$!
+  -logFile "$LOG"
 
-echo "Starting Unity (${LABEL}), pid ${UNITY_PID}…"
+echo "Starting Unity (${LABEL}) via open -na ${UNITY_APP}…"
 echo "Log: ${LOG}"
 
 elapsed=0
 while (( elapsed < MAX_SEC )); do
-  if ! kill -0 "$UNITY_PID" 2>/dev/null; then
-    # Parent may have spawned the real editor and exited — find by projectPath.
-    LIVE="$(pgrep -f "Unity.app/Contents/MacOS/Unity -projectPath ${ROOT}" || true)"
-    if [[ -z "${LIVE}" ]]; then
-      echo "FAIL: Unity exited before ready (${elapsed}s). See ${LOG}" >&2
-      exit 1
-    fi
-  fi
-
   if [[ -f "$LOG" ]]; then
     if grep -E -q "$FAIL_RE" "$LOG" 2>/dev/null; then
       echo "FAIL: error marker in log (${elapsed}s). See ${LOG}" >&2
@@ -102,7 +99,7 @@ while (( elapsed < MAX_SEC )); do
       LINE="$(grep -E "$READY_RE" "$LOG" | sed -n '$p')"
       LIVE="$(pgrep -f "Unity.app/Contents/MacOS/Unity -projectPath ${ROOT}" || true)"
       echo "READY: ${LABEL} (${LINE})"
-      echo "Unity running (pid ${LIVE:-$UNITY_PID}). Use ./scripts/stop.sh to quit."
+      echo "Unity running (pid ${LIVE}). Use ./scripts/stop.sh to quit."
       exit 0
     fi
   fi

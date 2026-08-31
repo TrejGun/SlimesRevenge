@@ -23,9 +23,9 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void ThreeLavaPuddles_LeaveDogAtOneHit()
+        public void ThreeLavaPuddles_LeaveEnemyAtOneHit()
         {
-            var dog = Spawn<Dog>(new Vector2Int(1, 1));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(1, 1));
             Assert.AreEqual(10, dog.HitPoints);
             for (var i = 0; i < 3; i++)
             {
@@ -71,7 +71,7 @@ namespace SlimesRevenge.Tests
         [Test]
         public void EnteringPuddle_AppliesWithoutDamage()
         {
-            var dog = Spawn<Dog>(Vector2Int.zero);
+            var dog = TestCreatures.Aggressive(spawned, Vector2Int.zero);
             var before = dog.HitPoints;
             new Lava().Apply(dog);
             Assert.AreEqual(before, dog.HitPoints);
@@ -79,7 +79,7 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_StepsThroughThreeWaterPuddles_TheyVanish()
+        public void Enemy_StepsThroughThreeWaterPuddles_TheyVanish()
         {
             var world = World.CreateGrass(8);
             var cells = new[] { new Vector2Int(1, 0), new Vector2Int(2, 0), new Vector2Int(3, 0) };
@@ -89,7 +89,7 @@ namespace SlimesRevenge.Tests
             }
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
-            var dog = Spawn<Dog>(new Vector2Int(0, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(0, 0));
             var session = SessionFactory.WithControlled(world, player, dog);
 
             foreach (var cell in cells)
@@ -104,7 +104,7 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_OilPuddleThenPoisonPuddle_GetsBothStatuses_PuddlesVanish()
+        public void Enemy_OilPuddleThenPoisonPuddle_GetsBothStatuses_PuddlesVanish()
         {
             var world = World.CreateGrass(8);
             var oilCell = new Vector2Int(1, 0);
@@ -113,7 +113,7 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(world.Floor.TryPlacePuddle(poisonCell, new Poison()));
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
-            var dog = Spawn<Dog>(new Vector2Int(0, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(0, 0));
             var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, oilCell));
@@ -133,7 +133,7 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_LavaPuddleThenWaterPuddle_ClearsBurning_AppliesWet()
+        public void Enemy_LavaPuddleThenWaterPuddle_ClearsBurning_AppliesWet()
         {
             var world = World.CreateGrass(8);
             var lavaCell = new Vector2Int(1, 0);
@@ -142,7 +142,7 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(world.Floor.TryPlacePuddle(waterCell, new Water()));
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
-            var dog = Spawn<Dog>(new Vector2Int(0, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(0, 0));
             var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, lavaCell));
@@ -163,7 +163,7 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_AcidPuddleThenWaterPuddle_ClearsCorroding_NoWet()
+        public void Enemy_AcidPuddleThenWaterPuddle_ClearsCorroding_NoWet()
         {
             var world = World.CreateGrass(8);
             var acidCell = new Vector2Int(1, 0);
@@ -172,7 +172,7 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(world.Floor.TryPlacePuddle(waterCell, new Water()));
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
-            var dog = Spawn<Dog>(new Vector2Int(0, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(0, 0));
             var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, acidCell));
@@ -190,7 +190,7 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_WetThenLavaPuddle_ClearsWet_NoBurning()
+        public void Enemy_WetThenLavaPuddle_ClearsWet_NoBurning()
         {
             var world = World.CreateGrass(8);
             var waterCell = new Vector2Int(1, 0);
@@ -199,7 +199,7 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(world.Floor.TryPlacePuddle(lavaCell, new Lava()));
 
             var player = Spawn<Slime>(new Vector2Int(7, 7));
-            var dog = Spawn<Dog>(new Vector2Int(0, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(0, 0));
             var session = SessionFactory.WithControlled(world, player, dog);
 
             Assert.IsTrue(session.TryMoveOccupant(dog.Cell, waterCell));
@@ -291,13 +291,13 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_StepsOnWater_WithBurnPoisonCorrode_WashesFireAndAcid_KeepsPoison_NoWet()
+        public void Enemy_StepsOnWater_WithBurnPoisonCorrode_WashesFireAndAcid_KeepsPoison_NoWet()
         {
             var world = World.CreateGrass(6);
             var waterCell = new Vector2Int(1, 0);
             Assert.IsTrue(world.Floor.TryPlacePuddle(waterCell, new Water()));
 
-            var dog = Spawn<Dog>(new Vector2Int(0, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(0, 0));
             dog.AddStatus(new Burning());
             dog.AddStatus(new Poisoned());
             dog.AddStatus(new Corroding());

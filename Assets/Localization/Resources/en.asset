@@ -474,3 +474,23 @@ MonoBehaviour:
     m_Localized: "Campaign started in {0} mode"
     m_Metadata:
       m_Items: []
+  - m_Id: 118
+    m_Localized: Mushroom
+    m_Metadata:
+      m_Items: []
+  - m_Id: 119
+    m_Localized: Water Element
+    m_Metadata:
+      m_Items: []
+  - m_Id: 120
+    m_Localized: Cactus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 121
+    m_Localized: Mandragora
+    m_Metadata:
+      m_Items: []
+  - m_Id: 122
+    m_Localized: Eye
+    m_Metadata:
+      m_Items: []

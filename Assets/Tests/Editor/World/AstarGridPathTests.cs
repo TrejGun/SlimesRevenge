@@ -151,14 +151,12 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Water_FloorPriorityFor_CatWithFearsWater_MatchesDot()
+        public void Water_FloorPriorityFor_EnemyWithFearsWater_MatchesDot()
         {
-            var cat = new GameObject("Cat").AddComponent<Cat>();
-            cat.PlaceOn(Vector2Int.zero);
-            if (cat.FindStatus<FearsWater>() == null)
-            {
-                cat.AddStatus(new FearsWater());
-            }
+            var cat = TestCreature
+                .Spawn(null, Vector2Int.zero)
+                .As(CreatureKind.Cat)
+                .Trait<FearsWater>();
 
             try
             {

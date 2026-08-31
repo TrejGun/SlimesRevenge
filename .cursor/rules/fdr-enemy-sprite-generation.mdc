@@ -1,0 +1,197 @@
+---
+description: Generate FDR-style creature sprite sheets (universal layout prompt). Use when drawing new animal/enemy sheets for the pack.
+globs:
+  - Assets/Art/**/*.png
+  - Assets/Art/**/*.png.meta
+  - Assets/Art/Original/**
+  - Assets/Resources/Animals/**
+  - Assets/ElvGames/Fantasy Dreamland Reborn/Enemies/**
+alwaysApply: false
+---
+
+# FDR enemy sprite-sheet generation
+
+When the user asks to draw a new creature sheet in the ElvGames Fantasy Dreamland Reborn style, call **GenerateImage**. Do not pixel-draw by hand. Do not invent an 8-direction “chicken” sheet (`scripts/generate_animal_sheets.py`).
+
+Cursor saves the result **outside the git repo** (`~/.cursor/projects/…/assets/`). Then:
+
+1. Copy that file **unchanged** to `Assets/Art/Original/` (full-size generator PNG).
+2. Downscale with `scripts/downscale_fdr_sheet.py` into `Assets/Art/Animals/{Kind}.png` (slimes: `Assets/Art/Slimes/{Look}.png`) and `Assets/Resources/Animals/` for animals.
+
+Native FDR / game sheets are **512×208**, cell **32×32**. GenerateImage always writes **1536×1024** (16:9). Prompt that size: square cells **96×96** (16×4) and **192×192** (8 battle), footer **48 px**, then magenta. **16×96=1536**. Do not prompt 2048×128 — the tool will not emit 2048, and 12 cells of 128 px fill the canvas, dropping C13–C16. Two small cells = one battle cell. `downscale_fdr_sheet.py` box-filters each cell (`w//16`) to 32×32 / 64×64 (**3×3** source pixels → one game pixel at 1536).
+
+## Which pack files to look at
+
+Folder: `Assets/ElvGames/Fantasy Dreamland Reborn/Enemies/`.
+
+Files are `FDR_Enemy_{NN}_{L}.png` with **NN = 01–12** and **L = A/B/C/D**. **01** was missing from the cleaned git import; it is in the Asset Store `.unitypackage` cache (`2D TopDown Tilesets Fantasy Dreamland`). Extract `_A`–`_D` (+ battlers) if the files are gone again.
+
+**Letters are recolors of the same drawing.** Alpha masks of `_A` vs `_B` match (except tiny noise on 10). Do **not** analyze B/C/D as new layouts. Study **one letter per number** — use `_A`.
+
+| NN | Creature (from `_A`) | Walk in the 32×32 cell | Attack C5–C8 |
+| --- | --- | --- | --- |
+| 01 | Green slime | In-place squash–stretch hop. | **Whip / pseudopod toward facing** (same family as 09). C8 recover. |
+| 02 | Green blob / frog-slime | In-place vertical bounce (~2 px). South/north same silhouette; west/east same blob. | **Dash toward facing.** C5 = motion streaks (south/north: tall vertical; west: left; east: right). C6–C7 open mouth, recover. C8 = walk pose. |
+| 03 | Frog with red mushroom cap | In-place bounce (~2 px). | Same **directional lunge** as 02 (C5 stretches toward facing, bbox can fill the cell height). C8 = walk. |
+| 04 | Red mushroom | All four rows look the **same** (always “front”). Bounce. | **Omnidirectional burst**, not a lunge. C5 squash. C6–C7 green shockwave ring grows under/around the cap. C8 ring fades. Body stays centered. |
+| 05 | Bat (Beamwing) | **Flap in place.** South/north: wide wings, cx **15.5**. West: body sits **right** in the cell (cx ≈ 16.8–17.5). East: **left** (cx ≈ 13.5–14.2). Idle = frame 2. | Body stays in the cell. **Red slash/beam toward facing** on C5–C7 (south: down; west: left; east: right; north: up). C8 = walk, no slash. |
+| 06 | Fire spirit | In-place flicker/bob. Eyes mark facing. | **Radial explosion.** C5 expand. C6–C7 peak + sparks. C8 contract. Little cx shift. |
+| 07 | Red winged imp | Flap in place. West shifted right, east left (same idea as the bat). | **Yellow slash toward facing** (south: vertical bars; west/east: diagonal/side). C8 = walk. |
+| 08 | Yellow sproutling | Bob **and** a 1 px side-step on odd frames: west C2 cx **−1**, east C2 cx **+1**. Still inside the cell. | **Green crescent melee** toward facing. C5 start swipe, C6 biggest arc, C7 follow-through, C8 walk. |
+| 09 | Green slime | Squash–stretch **hop in place** (C2–C3 rise ~5–6 px). All four rows share the same hop; facing is the attack, not the walk. | **Whip / pseudopod toward facing.** C5 wind-up, C6 longest lash, C7 retract, C8 idle. |
+| 10 | Green golem | In-place walk; west/east shift ~1 px. | **Halo / ring** grows (C5 small, C6–C7 large). Body centered. |
+| 11 | Mushroom humanoid | In-place bob (~2 px). | **Ground ring** under the feet grows C5→C8. Body centered. |
+| 12 | Dark sphere + one red eye | In-place 1 px bob. Eye marks facing (south: eye front; west: eye left; east: eye right; north: no eye). | **Lunge toward facing.** South C5 cy **+4** (down). North C5 cy **−4** (up). West C5 cx **−4**. East C5 cx **+4**. C6–C7 slide back. C8 = walk. |
+
+Shared column roles on **every** sheet (1-based): **C1–C4 walk**, **C5–C8 attack**, **C9–C12 damaged**, **C13–C16 dead**. Footer labels: `WALK - ATTACK - DAMAGE - DEAD`. Name **C1 … C16** in the image prompt so each cell is a pose, not four labeled groups.
+
+## Background (required)
+
+**Never generate on black (or any opaque fill).** Black in the PNG is opaque in Unity and shows as a black square on the grass. The sheet canvas and every empty 32×32 cell must be **transparent (alpha 0)**. If the model cannot emit alpha, use flat **magenta `#FF00FF`** only as a chroma key (the downscale script punches it to alpha). Do not use black, grey, or grass-green as the sheet background. Keep black **only** on the character outline pixels.
+
+## Grid (Unity slices on these cell edges)
+
+Canvas **512×208**. Pack PNGs are RGBA; empty pixels **`(0,0,0,0)`**.
+
+### Small sprites — 4 rows × 16 columns of **32×32**
+
+Cell `(column C, row R)` 0-based: `x = C*32 .. C*32+31`, `y = R*32 .. R*32+31`. Drawing must stay **inside** that rectangle.
+
+The **game** moves the transform on the grid. Walk/attack are **in-cell acting**, not traveling. Same body **anchor** every walk frame: south/north horizontal center **cx ≈ 15.5**; lowest pixels around **y = 18–20**. Do not slide the whole creature toward a cell edge across C1–C4.
+
+| Rows (top→bottom) | Meaning | Typical offset |
+| --- | --- | --- |
+| R0 y=0–31 | **South / down** — face the camera, walk **toward the viewer** | Centered, cx ≈ 15.5 |
+| R1 y=32–63 | **West / left** — face **left**, walk **left** | Sprite sits slightly **right** in the cell (bat west cx ≈ 17) |
+| R2 y=64–95 | **East / right** — face **right**, walk **right** | Sprite sits slightly **left** (bat east cx ≈ 14) |
+| R3 y=96–127 | **North / up** — face away, walk **away from the camera** | Centered like south |
+
+Walk sprites sit in the **middle** of the 32×32 with empty margin. Pack `_A` south C1 is typically **~10–16 px** wide and **~8–16 px** tall (bat `05` ≈ 18×8; golem `10` ≈ 16×19; mushroom humanoid `11` ≈ 22×23, still inset).
+
+### Columns (1-based) — one pose per cell
+
+Every small row is **16** cells. Pixel boxes on a 512-wide sheet (`x` inclusive):
+
+| Col | x | Block | Pose (same on all 4 rows; facing = row) |
+| --- | --- | --- | --- |
+| **C1** | 0–31 | walk | Contact / down. **Must differ from C2** (other leg / wing). |
+| **C2** | 32–63 | walk | Idle / up / opposite legs (~1–3 px). |
+| **C3** | 64–95 | walk | Contact beat like **C1**. |
+| **C4** | 96–127 | walk | Same family as **C2**. |
+| **C5** | 128–159 | attack | Wind-up / first strike **toward facing**. Not the walk pose. |
+| **C6** | 160–191 | attack | **Peak** (longest slash, widest ring, furthest lunge). |
+| **C7** | 192–223 | attack | Recover (FX shrinks, body returns toward walk). |
+| **C8** | 224–255 | attack | Walk pose like **C2**, no FX. Full color. |
+| **C9** | 256–287 | damage | Solid white silhouette of **C1**. RGB 255,255,255 α 255. |
+| **C10** | 288–319 | damage | Full-color hurt / walk-2. |
+| **C11** | 320–351 | damage | Full-color body, **C1/C3** pose. |
+| **C12** | 352–383 | damage | Full-color body, **C2/C4** pose. |
+| **C13** | 384–415 | dead | Same white stamp as **C9** (C1 pose). RGB 255,255,255 α 255. |
+| **C14** | 416–447 | dead | White C13 shape with holes, α 150. |
+| **C15** | 448–479 | dead | White smaller crumbs, α 90. |
+| **C16** | 480–511 | dead | White specks, α 60. |
+
+Walk stays in-place. Attack facing: south = down in the cell; west = left; east = right; north = up. Torso stays in the inner ~18×18; FX may near the cell border. Each row’s attack uses that row’s facing. Pick anatomy in `CREATURE:`: lunge 12/02/03, slash 05/07/08, ring/burst 04/06/10/11, whip 09. Winged creatures use flap (wings down/up) instead of a foot cycle.
+
+### Dead frames (C13–C16) — measured on `FDR_Enemy_05_A` south
+
+C9 and C13 are the **same** white stamp. C14–C16 stay RGB **white** `(255,255,255)`; they only look grey on a black matte because **alpha** falls. Punch holes in the silhouette; do not paint grey RGB or smoke clouds.
+
+| Col | Opaque-looking pixels | RGB | Alpha |
+| --- | --- | --- | --- |
+| 13 | 66 (identical to C9) | 255,255,255 | **255** |
+| 14 | 53 (holes) | 255,255,255 | **150** |
+| 15 | 38 | 255,255,255 | **90** |
+| 16 | 19 specks | 255,255,255 | **60** |
+
+### Large sprites — 1 row × **8** of **64×64** (idle for duel select / turn UI)
+
+`y = 128..191`. Cell `B` (0-based, 0–7): `x = B*64 .. B*64+63`. Label: `BATTLE SPRITE 64X64` / `8 FRAMES ANIMATION`.
+
+All eight: **south / front**, cx ≈ **31.5**, shared floor (ymax). Idle only (no walk, attack FX, or death).
+
+It is a **4-beat body loop played twice**, with a blink on beats 5–6.
+
+Two independent axes only:
+
+| Axis | States | What it is |
+| --- | --- | --- |
+| **Body (bounce)** | 4 beats | Rest → inhale/up (or wings up) → peak → exhale/down (or wings down). ~1–4 px. Flyer (`05` bat): odd frames wings **up** (more pixels), even **down**. |
+| **Face** | 3 eye states | **Open** (default). **Closed** = eyelids = body color, not missing pixels (`05` B5: 0 red eye px). **Half** (`05` B6: 4 red px vs 8). Mouth is **not** a third axis: it only opens on inhale/peak if the creature has a mouth (`02` B2–B3). Most sheets keep the mouth shut the whole row. |
+
+Gaze left/right is **not** a pack rule. `12` B7 vs B8 differs by **21 px** in the lid, not a look. `05` B1–B4 and B7–B8 all have the same 8 red + 2 white eye pixels; B4 **=** B8.
+
+What the pack actually draws:
+
+| Beat | Body | Face (typical) | Pack proof |
+| --- | --- | --- | --- |
+| **B1** | rest / wings up | eyes **open**, mouth closed | `02` `05` `07` `12` |
+| **B2** | inhale / lower or wings **down** | eyes open; mouth may open | `02` stretch; `05` n=230 wings down |
+| **B3** | peak (highest) / wings **up** | eyes open; mouth may stay open | `05` cy=25.9 highest; `02` still tall |
+| **B4** | exhale / wings **down** | eyes open, mouth closed | `05` B4; `02` squash |
+| **B5** | **same body as B1** | eyes **closed** | `02` +28 px lids; `05` red=0, still n=292 wings up; `12` red=0 |
+| **B6** | **same body as B2** | eyes **half-open** | `05` wings down + red=4; `02` half on rest; `12` pink=55 vs 143 |
+| **B7** | **same body as B3** | eyes **open** | `07` B7=B3; `05` wings up + full eye |
+| **B8** | **same body as B4** | eyes **open** | `07` B8=B4; `05` B8=B4 exactly |
+
+`04` puts the blink on **B6–B7** of a rest pose (closed → half → B8=B1 open). Same three eye states, different slot. New sheets use the table above: blink on 5–6, body loop 1–4 repeated as 5–8.
+
+### Color palette strip **y = 192–207** (last 16 px of the 512×208 canvas)
+
+Not a separate texture. Drawn on the **same PNG**. Last **16 px** of the 512×208 canvas (`y = 192–207`).
+
+**Swatch count (measured `_A`):** 6 (`07`) … 16 (`03`) … 17 (`08`). Typical 8–12 (bat `05` = 8). New sheets: **≤12** unique RGB on the creature and on the bar (pack hard max 17).
+
+**Geometry:** each swatch **4×4**, **no outline**. **One** horizontal bar, squares **flush** (0 px gap). Center at **y = 194–197**, about **x = 220–290**. Same 16 px band as the labels. Pack: bar sits **between** the two text lines (top ~y193, `COLOR PALETTE` ~y200–204).
+
+Bat `05_A` at y=194–197: white `238–241` then pink/reds **flush**, then greys **flush**.
+
+**Labels:** 5 px bitmap `(255,255,255)`, no black boxes. Left: `ENEMY SPRITE 32X32` / `WALK - ATTACK - DAMAGE - DEAD`. Center under the bar: `COLOR PALETTE`. Right: `BATTLE SPRITE 64X64` / `8 FRAMES ANIMATION`. White glyphs ~x=21–486, y=193–205.
+
+### Transparent matte
+
+Pack empty pixels: **`(0,0,0,0)`**. Game PNGs: real alpha, that matte. Never bake a checker. Never opaque black fill.
+
+Grid guide and prompt: **96×96** / **192×192** from (0,0) on **1536×1024**, footer **y=576–623**, magenta below. Game sheet after box-filter: 32×32 / 64×64.
+
+## GenerateImage call
+
+- `filename`: `FDR_Enemy_{Kind}_A.png`
+- `aspect_ratio`: `16:9`
+- `reference_image_paths` — **only** `scripts/fdr_sheet_grid_guide.png`. That file is one pack `_A` sheet nearest-neighbor 3× (`32→96`) so every creature already sits in a cyan box. Do **not** attach native 512×208 pack files as extra images.
+
+Keep the `description` body **universal**. After it, append **one** `CREATURE:` paragraph: species, silhouette, attack recipe, and (if winged) flap instead of feet. Do not put a specific animal into the shared prompt.
+
+## `description` (verbatim — universal; append CREATURE after this)
+
+```
+PIXEL-ART GAME SPRITE SHEET. TRACE the attached image pixel-for-pixel for the GRID. That file is 1536x1024, same as this output. Cyan vertical lines at x=0,96,192,288,384,480,576,672,768,864,960,1056,1152,1248,1344,1440,1535. Cyan horizontal lines at y=0,96,192,288,384,576,624. Copy every cyan line. Each small box is 96x96. Column 16 is x=1440-1535 and is a real cell. Copy the lime square with yellow inside from the bottom-right.
+
+The attached image already has a pack creature inside every cyan box (style and occupancy). Paint YOUR creature in those same boxes (chunky square pixels, no photo, no 3D, no anti-aliasing). Cyan is grid only. Do not copy the attached creature.
+
+CANVAS: 1536x1024, empty = magenta #FF00FF, black only on outlines.
+
+y=0-383: four rows of sixteen 96x96 cells. Fill all sixteen columns.
+y=384-575: eight 192x192 cells, each a south/front idle pose of the same creature (not a second mini-sheet, not labels, not a palette).
+y=576-623: footer only: white labels and one flush 4x4 swatch bar.
+y=624-1023: empty magenta plus the lime/yellow mark.
+
+SCALE: body about one third of the 96x96, magenta margin on all sides. Strike and FX stay inside the same 96x96.
+
+ROWS: R0 y=0-95 south, face camera, strike down. R1 y=96-191 west, face left, strike left. R2 y=192-287 east, face right, strike right. R3 y=288-383 north, face away, strike up. Same actor onion-skinned along a row.
+
+COLUMNS: C1-C4 walk in place. C5 wind-up. C6 peak strike inside the cell. C7 recover. C8 walk, no FX. C9 white silhouette of C1. C10-C12 hurt color. C13 white stamp. C14 holes. C15 crumbs. C16 specks.
+
+FOOTER labels: ENEMY SPRITE 32X32 / WALK - ATTACK - DAMAGE - DEAD, COLOR PALETTE, BATTLE SPRITE 64X64 / 8 FRAMES ANIMATION. At most 12 unique RGB.
+
+BATTLE: eight frames, bounce twice, blink on 5-6.
+```
+
+## Downscale (after GenerateImage)
+
+Pipeline (`scripts/downscale_fdr_sheet.py`):
+
+1. Copy the generator PNG to `Assets/Art/Original/` (do not resize this copy).
+2. Open RGBA. **First** punch the magenta fill. **Then** punch cyan-looking pixels. **Then** punch the lattice by position (`x = k·(w/16)`, plus 1px dither) — the generator’s grid is not `#00FFFF` and drifts purple. **Then** slice and downscale. Do **not** key black (outlines).
+3. **Slice the lattice** from the top (`w//16` cells): each cell **box-filtered** to 32×32 / 64×64, then hard alpha.
+4. Write the 512×208 PNG to `Assets/Art/Animals/` (or `Art/Slimes/`). Unity: `filterMode: Point`, `alphaIsTransparency: 1`, `spritePixelsToUnits: 32`. Keep existing `.meta` **guid**s; first slice `internalID` `100000` for Rat/Cat/Dog/Scorpion scene sprites.

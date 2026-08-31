@@ -39,12 +39,12 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void DogChase_PrefersATwoCellStep()
+        public void AggressiveChase_PrefersATwoCellStep()
         {
             // Chebyshev 5 keeps the player in vision (range 5); 6 would idle instead of chase.
             var origin = new Vector2Int(4, 5);
             var player = Spawn<Slime>(new Vector2Int(4, 0));
-            var dog = Spawn<Dog>(origin);
+            var dog = TestCreatures.Aggressive(spawned, origin);
             var session = Occupied(World.CreateGrass(), player, dog);
 
             Assert.AreEqual(2, dog.Speed);
@@ -86,10 +86,10 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Cat_DoesNothingWhenItSeesThePlayer()
+        public void Passive_DoesNothingWhenItSeesThePlayer()
         {
             var player = Spawn<Slime>(new Vector2Int(0, 0));
-            var cat = Spawn<Cat>(new Vector2Int(3, 0));
+            var cat = TestCreatures.Passive(spawned, new Vector2Int(3, 0));
             var session = Occupied(World.CreateGrass(), player, cat);
 
             Assert.IsTrue(CreatureMoves.CanSee(cat, player));
@@ -100,10 +100,10 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Cat_IgnoresPlayerUntilInCombat()
+        public void Passive_IgnoresPlayerUntilInCombat()
         {
             var player = Spawn<Slime>(new Vector2Int(4, 4));
-            var cat = Spawn<Cat>(new Vector2Int(5, 5));
+            var cat = TestCreatures.Passive(spawned, new Vector2Int(5, 5));
             var session = Occupied(World.CreateGrass(), player, cat);
 
             cat.TakeTurn(session, player, new FixedRng());
@@ -118,11 +118,11 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_ChasesWhenPlayerIsInVision()
+        public void Aggressive_ChasesWhenPlayerIsInVision()
         {
             var origin = new Vector2Int(5, 0);
             var player = Spawn<Slime>(new Vector2Int(0, 0));
-            var dog = Spawn<Dog>(origin);
+            var dog = TestCreatures.Aggressive(spawned, origin);
             var session = Occupied(World.CreateGrass(), player, dog);
 
             Assert.IsTrue(GridStep.InRange(origin, player.Cell, dog.VisionRange));
@@ -151,13 +151,13 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_GoesAroundAWallOfThreeCatsToReachTheSlime()
+        public void Aggressive_GoesAroundAWallOfThreeEnemiesToReachTheSlime()
         {
             var player = Spawn<Slime>(new Vector2Int(1, 5));
-            var top = Spawn<Cat>(new Vector2Int(2, 6));
-            var middle = Spawn<Cat>(new Vector2Int(2, 5));
-            var bottom = Spawn<Cat>(new Vector2Int(2, 4));
-            var dog = Spawn<Dog>(new Vector2Int(3, 5));
+            var top = TestCreatures.Passive(spawned, new Vector2Int(2, 6));
+            var middle = TestCreatures.Passive(spawned, new Vector2Int(2, 5));
+            var bottom = TestCreatures.Passive(spawned, new Vector2Int(2, 4));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(3, 5));
             var session = Occupied(World.CreateGrass(), player, top, middle, bottom, dog);
             var others = new List<Creature> { top, middle, bottom, dog };
             var cats = new[] { top.Cell, middle.Cell, bottom.Cell };
@@ -196,18 +196,18 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_GoesAroundAWallOfFiveCatsToReachTheSlime()
+        public void Aggressive_GoesAroundAWallOfFiveEnemiesToReachTheSlime()
         {
             var player = Spawn<Slime>(new Vector2Int(1, 5));
             var cats = new[]
             {
-                Spawn<Cat>(new Vector2Int(2, 7)),
-                Spawn<Cat>(new Vector2Int(2, 6)),
-                Spawn<Cat>(new Vector2Int(2, 5)),
-                Spawn<Cat>(new Vector2Int(2, 4)),
-                Spawn<Cat>(new Vector2Int(2, 3)),
+                TestCreatures.Passive(spawned, new Vector2Int(2, 7)),
+                TestCreatures.Passive(spawned, new Vector2Int(2, 6)),
+                TestCreatures.Passive(spawned, new Vector2Int(2, 5)),
+                TestCreatures.Passive(spawned, new Vector2Int(2, 4)),
+                TestCreatures.Passive(spawned, new Vector2Int(2, 3)),
             };
-            var dog = Spawn<Dog>(new Vector2Int(3, 5));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(3, 5));
             var session = Occupied(
                 World.CreateGrass(),
                 player,
@@ -258,8 +258,8 @@ namespace SlimesRevenge.Tests
         public void CreatureVisionRange_DefaultsToFive()
         {
             var rat = Spawn<Rat>(Vector2Int.zero);
-            var cat = Spawn<Cat>(Vector2Int.one);
-            var dog = Spawn<Dog>(new Vector2Int(2, 2));
+            var cat = TestCreatures.Passive(spawned, Vector2Int.one);
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(2, 2));
             var bat = Spawn<Bat>(new Vector2Int(3, 3));
             var scorpion = Spawn<Scorpion>(new Vector2Int(4, 4));
             Assert.AreEqual(5, rat.VisionRange);
@@ -299,7 +299,7 @@ namespace SlimesRevenge.Tests
             player.Volume.Add(new Water());
             player.RefreshVolumeStatuses();
             var rat = Spawn<Rat>(new Vector2Int(1, 0));
-            var dog = Spawn<Dog>(new Vector2Int(3, 0));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(3, 0));
             var turns = SpawnObject("Turns").AddComponent<TurnManager>();
             turns.Rng = new FixedRng();
             turns.Bind(world, player, rat, dog);
@@ -316,10 +316,10 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Cat_HuntsRatWhenIdleOrWandering()
+        public void Passive_HuntsCowardlyWhenIdleOrWandering()
         {
             var player = Spawn<Slime>(new Vector2Int(0, 0));
-            var cat = Spawn<Cat>(new Vector2Int(3, 0));
+            var cat = TestCreatures.Passive(spawned, new Vector2Int(3, 0));
             var rat = Spawn<Rat>(new Vector2Int(4, 0));
             var session = Occupied(World.CreateGrass(), player, cat, rat);
             var others = new List<Creature> { cat, rat };
@@ -337,11 +337,11 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void Dog_HuntsCatWhenIdleAwayFromPlayer()
+        public void Aggressive_HuntsPassiveWhenIdleAwayFromPlayer()
         {
             var player = Spawn<Slime>(new Vector2Int(0, 0));
-            var dog = Spawn<Dog>(new Vector2Int(8, 8));
-            var cat = Spawn<Cat>(new Vector2Int(8, 7));
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(8, 8));
+            var cat = TestCreatures.Passive(spawned, new Vector2Int(8, 7));
             var session = Occupied(World.CreateGrass(), player, dog, cat);
             var others = new List<Creature> { dog, cat };
 

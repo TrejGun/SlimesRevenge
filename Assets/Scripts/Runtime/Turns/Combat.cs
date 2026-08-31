@@ -18,6 +18,7 @@ namespace SlimesRevenge
             }
 
             attacker.RefreshVolumeStatuses();
+            CreatureSpriteAnimator.PlayAttack(attacker, target.Cell);
 
             ActionLog.BeginKey(
                 TextKey.LogHitWith,
@@ -49,6 +50,11 @@ namespace SlimesRevenge
             if (target == null || !target.IsAlive)
             {
                 return false;
+            }
+
+            if (attacker != null && target != null)
+            {
+                CreatureSpriteAnimator.PlayAttack(attacker, target.Cell);
             }
 
             var attackerPart =

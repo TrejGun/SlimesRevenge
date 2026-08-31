@@ -54,3 +54,6 @@ scripts/__pycache__/
 # Local art tooling (not committed)
 scripts/recolor_slime.py
 scripts/out/
+
+# Local Unity AI Assistant editor settings
+ProjectSettings/Packages/com.unity.ai.assistant/

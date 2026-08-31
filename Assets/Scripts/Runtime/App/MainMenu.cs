@@ -54,7 +54,7 @@ namespace SlimesRevenge
 
             loadout = RunConfig.DefaultWaterLoadout();
             var opponents = CreatureCatalog.Opponents;
-            opponent = opponents.Count > 0 ? opponents[0].Kind : CreatureKind.Rat;
+            opponent = opponents.Count > 0 ? opponents[0].Kind : CreatureKind.Bat;
         }
 
         private void Start()
@@ -163,7 +163,7 @@ namespace SlimesRevenge
             for (var i = 0; i < opponents.Count; i++)
             {
                 var kind = opponents[i].Kind;
-                var frames = AnimalSprites.SouthWalk(kind);
+                var frames = CreatureSheet.Portrait(kind);
                 var button = MenuUi.AddFloatingChip(
                     host,
                     font,
@@ -171,7 +171,10 @@ namespace SlimesRevenge
                     frames,
                     frames.Length > 0 ? frames[0] : IconCatalog.Creature(kind),
                     Vector2.zero,
-                    null
+                    null,
+                    MenuUi.ChipWidth,
+                    124f,
+                    FdrSheetLayout.BattleCellPixels
                 );
                 button.onClick.AddListener(() => SelectOpponent(kind, button));
                 chips.Add(button.transform as RectTransform);
