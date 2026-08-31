@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  UNITY_VERSION: 6000.3.23f1
+  UNITY_VERSION: 6000.5.10f1
 
 permissions:
   contents: read

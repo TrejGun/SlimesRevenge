@@ -2,12 +2,12 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-UNITY="${UNITY_EDITOR:-/Applications/Unity/Hub/Editor/6000.3.23f1/Unity.app/Contents/MacOS/Unity}"
+UNITY="${UNITY_EDITOR:-/Applications/Unity/Hub/Editor/6000.5.10f1/Unity.app/Contents/MacOS/Unity}"
 TARGET="${1:-}"
 
 if [[ ! -x "$UNITY" ]]; then
   echo "Unity Editor not found at: $UNITY" >&2
-  echo "Install Unity 6000.3.23f1 or set UNITY_EDITOR." >&2
+  echo "Install Unity 6000.5.10f1 or set UNITY_EDITOR." >&2
   exit 1
 fi
 

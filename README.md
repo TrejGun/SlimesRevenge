@@ -1,7 +1,7 @@
 # Slime's Revenge
 
 Mobile Unity game (iOS + Android). Bundle id: `com.trejgun.slimesrevenge`.  
-Unity **6000.3.23f1**. Landscape.
+Unity **6000.5.10f1**. Landscape.
 
 Flow: `Splash` → `Main` (menu) ↔ `Game` (campaign or duel).
 
