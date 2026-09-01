@@ -15,12 +15,14 @@ namespace SlimesRevenge
         public const string SubstanceAcid = "substance.acid";
         public const string SubstanceBlood = "substance.blood";
         public const string SubstanceLava = "substance.lava";
+        public const string SubstanceMercury = "substance.mercury";
         public const string StatusPoisoned = "status.poisoned";
         public const string StatusCorroding = "status.corroding";
         public const string StatusInstability = "status.instability";
         public const string StatusBurning = "status.burning";
         public const string StatusWet = "status.wet";
         public const string StatusFireproof = "status.fireproof";
+        public const string StatusInvisible = "status.invisible";
         public const string StatusFlammable = "status.flammable";
         public const string StatusRetaliation = "status.retaliation";
         public const string StatusRegeneration = "status.regeneration";
@@ -38,6 +40,7 @@ namespace SlimesRevenge
         public const string StatusBurningDesc = "status.burning.desc";
         public const string StatusWetDesc = "status.wet.desc";
         public const string StatusFireproofDesc = "status.fireproof.desc";
+        public const string StatusInvisibleDesc = "status.invisible.desc";
         public const string StatusFlammableDesc = "status.flammable.desc";
         public const string StatusRetaliationDesc = "status.retaliation.desc";
         public const string StatusRegenerationDesc = "status.regeneration.desc";
@@ -116,7 +119,7 @@ namespace SlimesRevenge
         public const string CreatureBat = "creature.bat";
         public const string CreatureScorpion = "creature.scorpion";
         public const string CreatureMushroom = "creature.mushroom";
-        public const string CreatureWaterElement = "creature.water_element";
+        public const string CreatureUndine = "creature.undine";
         public const string CreatureCactus = "creature.cactus";
         public const string CreatureMandragora = "creature.mandragora";
         public const string CreatureEye = "creature.eye";
@@ -139,8 +142,8 @@ namespace SlimesRevenge
                     return CreatureScorpion;
                 case CreatureKind.Mushroom:
                     return CreatureMushroom;
-                case CreatureKind.WaterElement:
-                    return CreatureWaterElement;
+                case CreatureKind.Undine:
+                    return CreatureUndine;
                 case CreatureKind.Cactus:
                     return CreatureCactus;
                 case CreatureKind.Mandragora:
@@ -167,12 +170,14 @@ namespace SlimesRevenge
             SubstanceAcid,
             SubstanceBlood,
             SubstanceLava,
+            SubstanceMercury,
             StatusPoisoned,
             StatusCorroding,
             StatusInstability,
             StatusBurning,
             StatusWet,
             StatusFireproof,
+            StatusInvisible,
             StatusFlammable,
             StatusRetaliation,
             StatusRegeneration,
@@ -190,6 +195,7 @@ namespace SlimesRevenge
             StatusBurningDesc,
             StatusWetDesc,
             StatusFireproofDesc,
+            StatusInvisibleDesc,
             StatusFlammableDesc,
             StatusRetaliationDesc,
             StatusRegenerationDesc,
@@ -268,7 +274,7 @@ namespace SlimesRevenge
             CreatureBat,
             CreatureScorpion,
             CreatureMushroom,
-            CreatureWaterElement,
+            CreatureUndine,
             CreatureCactus,
             CreatureMandragora,
             CreatureEye,

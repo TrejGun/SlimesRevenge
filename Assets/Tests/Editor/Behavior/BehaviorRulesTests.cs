@@ -173,6 +173,33 @@ namespace SlimesRevenge.Tests
         /// 2) Slime is adjacent → steps away → aggressive enemy closes and bites.
         /// </summary>
         [Test]
+        public void Aggressive_Adjacent_InvisibleMercurySlime_IdlesUntilAggro()
+        {
+            var world = new World(RunConfig.DuelWidth, RunConfig.DuelHeight, TerrainType.Grass);
+            var player = Spawn<Slime>(new Vector2Int(5, 2));
+            FillDominantMercury(player);
+            var dog = TestCreatures.Aggressive(spawned, new Vector2Int(6, 2));
+            var turns = SpawnObject("Turns").AddComponent<TurnManager>();
+            turns.Rng = new FixedRng();
+            turns.Bind(world, player, dog);
+
+            Assert.IsTrue(GridStep.IsAdjacent(dog.Cell, player.Cell));
+            Assert.IsNotNull(player.FindStatus<Invisible>());
+            Assert.IsFalse(CreatureMoves.CanSee(dog, player));
+            Assert.IsFalse(CreatureMoves.IsDetected(dog, player));
+            Assert.AreEqual(10, player.Volume.UnitCount);
+
+            Assert.IsTrue(turns.TryWait());
+            Assert.AreEqual(10, player.Volume.UnitCount, "Invisible slime adjacent must not be bitten.");
+            Assert.IsFalse(dog.Aggroed);
+
+            dog.MarkAggro();
+            Assert.IsTrue(CreatureMoves.IsDetected(dog, player));
+            Assert.IsTrue(turns.TryWait());
+            Assert.AreEqual(9, player.Volume.UnitCount, "After aggro, adjacent dog bites.");
+        }
+
+        [Test]
         public void Aggressive_Adjacent_SlimeStepsAway_CatchesAndBites()
         {
             var world = new World(RunConfig.DuelWidth, RunConfig.DuelHeight, TerrainType.Grass);
@@ -477,6 +504,19 @@ namespace SlimesRevenge.Tests
             Assert.IsTrue(Combat.Attack(dog, player));
             Assert.IsTrue(dog.InCombat);
             Assert.AreEqual(player.Cell, dog.PursuitCell);
+        }
+
+        private static void FillDominantMercury(Slime slime)
+        {
+            slime.Volume.Clear();
+            for (var i = 0; i < 8; i++)
+            {
+                slime.Volume.Add(new Mercury());
+            }
+
+            slime.Volume.Add(new Water());
+            slime.Volume.Add(new Water());
+            slime.RefreshVolumeStatuses();
         }
 
         private T Spawn<T>(Vector2Int cell)

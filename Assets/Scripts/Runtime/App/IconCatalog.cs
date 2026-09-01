@@ -24,6 +24,7 @@ namespace SlimesRevenge
             { typeof(Acid), "Icons/substance_acid" },
             { typeof(Blood), "Icons/substance_blood" },
             { typeof(Lava), "Icons/substance_lava" },
+            { typeof(Mercury), "Icons/substance_mercury" },
         };
 
         private static readonly Dictionary<Type, string> statusKeys = new Dictionary<Type, string>
@@ -34,6 +35,7 @@ namespace SlimesRevenge
             { typeof(Burning), "Icons/status_burning" },
             { typeof(Wet), "Icons/status_wet" },
             { typeof(Fireproof), "Icons/status_fireproof" },
+            { typeof(Invisible), "Icons/status_invisible" },
             { typeof(Flammable), "Icons/status_flammable" },
             { typeof(Retaliation), "Icons/status_retaliation" },
             { typeof(Regeneration), "Icons/status_regeneration" },
@@ -112,7 +114,7 @@ namespace SlimesRevenge
                 CreatureKind.Bat => new Color(0.35f, 0.3f, 0.45f),
                 CreatureKind.Scorpion => new Color(0.7f, 0.45f, 0.15f),
                 CreatureKind.Mushroom => new Color(0.75f, 0.2f, 0.2f),
-                CreatureKind.WaterElement => new Color(0.35f, 0.65f, 0.9f),
+                CreatureKind.Undine => new Color(0.35f, 0.65f, 0.9f),
                 CreatureKind.Cactus => new Color(0.35f, 0.7f, 0.3f),
                 CreatureKind.Mandragora => new Color(0.45f, 0.55f, 0.25f),
                 CreatureKind.Eye => new Color(0.7f, 0.15f, 0.15f),

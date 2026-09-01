@@ -479,7 +479,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 119
-    m_Localized: Water Element
+    m_Localized: Undine
     m_Metadata:
       m_Items: []
   - m_Id: 120
@@ -492,5 +492,17 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 122
     m_Localized: Eye
+    m_Metadata:
+      m_Items: []
+  - m_Id: 123
+    m_Localized: Mercury
+    m_Metadata:
+      m_Items: []
+  - m_Id: 124
+    m_Localized: Invisible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 125
+    m_Localized: Mobs ignore you until you strike or they are drawn into combat.
     m_Metadata:
       m_Items: []

@@ -14,7 +14,9 @@ namespace SlimesRevenge
     {
         public override bool IsTrue()
         {
-            return CreatureMoves.IsAdjacent(ResolveSelf(), CreatureTurnContext.Player);
+            var self = ResolveSelf();
+            var player = CreatureTurnContext.Player;
+            return CreatureMoves.IsAdjacent(self, player) && CreatureMoves.IsDetected(self, player);
         }
 
         private Creature ResolveSelf()

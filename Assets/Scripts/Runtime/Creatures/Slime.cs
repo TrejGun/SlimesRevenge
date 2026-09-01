@@ -24,6 +24,9 @@ namespace SlimesRevenge
         [SerializeField]
         private Sprite lavaSprite;
 
+        [SerializeField]
+        private Sprite mercurySprite;
+
         private SpriteRenderer body;
         private CreatureSpriteAnimator animator;
         private SlimeLook shownLook;
@@ -36,7 +39,8 @@ namespace SlimesRevenge
             Sprite poison,
             Sprite acid,
             Sprite blood,
-            Sprite lava
+            Sprite lava,
+            Sprite mercury
         )
         {
             waterSprite = water;
@@ -45,6 +49,7 @@ namespace SlimesRevenge
             acidSprite = acid;
             bloodSprite = blood;
             lavaSprite = lava;
+            mercurySprite = mercury;
             appearanceStarted = false;
             ApplyAppearance();
         }
@@ -139,6 +144,8 @@ namespace SlimesRevenge
                     return bloodSprite;
                 case SlimeLook.Lava:
                     return lavaSprite;
+                case SlimeLook.Mercury:
+                    return mercurySprite != null ? mercurySprite : waterSprite;
                 default:
                     return waterSprite;
             }

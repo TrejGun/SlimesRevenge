@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import math
 import struct
 import uuid
 import zlib
@@ -19,6 +20,7 @@ SUBSTANCES = {
     "substance_acid": (204, 228, 48),
     "substance_blood": (204, 44, 52),
     "substance_lava": (236, 96, 32),
+    "substance_mercury": (176, 192, 208),
 }
 
 # name -> (circle_rgb, glyph_kind)
@@ -29,6 +31,7 @@ STATUSES = {
     "status_burning": ((236, 120, 32), "flame"),
     "status_wet": ((64, 168, 236), "waves"),
     "status_fireproof": ((140, 150, 160), "shield"),
+    "status_invisible": ((176, 192, 208), "ghost"),
     "status_flammable": ((168, 108, 36), "oil_spark"),
     "status_retaliation": ((204, 60, 60), "arrows"),
     "status_regeneration": ((220, 100, 140), "plus"),
@@ -322,6 +325,15 @@ def paint_glyph(pixels: bytearray, kind: str, color: tuple[int, int, int, int] =
         for d in range(7):
             set_px(pixels, 16 + d, cy - d, color)
             set_px(pixels, 16 + d, cy + d, color)
+    elif kind == "ghost":
+        for angle in range(0, 360, 12):
+            rad = math.radians(angle)
+            x = int(cx + math.cos(rad) * 14)
+            y = int(cy + math.sin(rad) * 14)
+            if angle % 24 == 0:
+                set_px(pixels, x, y, color)
+                set_px(pixels, x, y + 1, color)
+        fill_circle(pixels, cx, cy, 6, (*color[:3], 120))
 
 
 def paint_status(rgb: tuple[int, int, int], glyph: str) -> bytearray:

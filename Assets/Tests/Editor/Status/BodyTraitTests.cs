@@ -214,6 +214,14 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
+        public void MercuryDominant_GrantsInvisible()
+        {
+            var slime = SpawnSlime();
+            FillDominant(slime, new Mercury(), 8);
+            Assert.IsNotNull(slime.FindStatus<Invisible>());
+        }
+
+        [Test]
         public void BloodDominant_RegenerationGrowsOnPulseUntilCapacity()
         {
             // RefreshVolumeStatuses only hangs Regeneration; growth is FIFO OnPulse at turn start.

@@ -51,6 +51,11 @@ namespace SlimesRevenge
             dominant?.CaptureSurvivedHitReactions(sink);
         }
 
+        public void CollectPassives(IList<StatusEffect> sink)
+        {
+            dominant?.CollectDominancePassives(sink);
+        }
+
         /// <summary>
         /// Scale harm via dominance passives that are not already queued
         /// (e.g. Forever <see cref="Flammable"/> under oil dominance).

@@ -52,6 +52,11 @@ namespace SlimesRevenge
                 return false;
             }
 
+            if (attacker != null && !CreatureMoves.IsDetected(attacker, target))
+            {
+                return false;
+            }
+
             if (attacker != null && target != null)
             {
                 CreatureSpriteAnimator.PlayAttack(attacker, target.Cell);

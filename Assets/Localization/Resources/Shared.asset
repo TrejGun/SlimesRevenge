@@ -476,7 +476,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 119
-    m_Key: creature.water_element
+    m_Key: creature.undine
     m_Metadata:
       m_Items: []
   - m_Id: 120
@@ -489,6 +489,18 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 122
     m_Key: creature.eye
+    m_Metadata:
+      m_Items: []
+  - m_Id: 123
+    m_Key: substance.mercury
+    m_Metadata:
+      m_Items: []
+  - m_Id: 124
+    m_Key: status.invisible
+    m_Metadata:
+      m_Items: []
+  - m_Id: 125
+    m_Key: status.invisible.desc
     m_Metadata:
       m_Items: []
   m_Metadata:

@@ -195,6 +195,47 @@ namespace SlimesRevenge
             volumeDominance.CaptureSurvivedHitReactions(sink);
         }
 
+        /// <summary>
+        /// True when <paramref name="observer"/> may spot this creature for chase / attack.
+        /// Dominance passives (e.g. mercury <see cref="Invisible"/>) count even when not queued.
+        /// </summary>
+        public bool IsDetectedBy(Creature observer)
+        {
+            if (!IsAlive)
+            {
+                return false;
+            }
+
+            if (observer != null && observer.Aggroed)
+            {
+                return true;
+            }
+
+            if (this is Slime)
+            {
+                var passives = new System.Collections.Generic.List<StatusEffect>(4);
+                volumeDominance.CollectPassives(passives);
+                for (var i = 0; i < passives.Count; i++)
+                {
+                    if (passives[i].BlocksDetectionFrom(observer, this))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            var statuses = Statuses;
+            for (var i = 0; i < statuses.Count; i++)
+            {
+                if (statuses[i].BlocksDetectionFrom(observer, this))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         public void DispatchSurvivedHitReactions(
             System.Collections.Generic.IReadOnlyList<StatusEffect> reactions,
             Creature attacker

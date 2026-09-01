@@ -9,7 +9,7 @@ namespace SlimesRevenge
         Bat,
         Scorpion,
         Mushroom,
-        WaterElement,
+        Undine,
         Cactus,
         Mandragora,
         Eye,

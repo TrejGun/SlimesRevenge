@@ -290,6 +290,7 @@ MonoBehaviour:
   slimeAcid: {fileID: 908976682, guid: 3aaa217591794bfb95767e0436608e42, type: 3}
   slimeBlood: {fileID: 908976682, guid: 169f4764da0743b7bdb7c94e0039659a, type: 3}
   slimeLava: {fileID: 908976682, guid: 0c6f3d5210674da8866db660a6f80436, type: 3}
+  slimeMercury: {fileID: 908976682, guid: a1119ee1e00000000000000000000007, type: 3}
   turnManager: {fileID: 100100004}
 --- !u!114 &100100004
 MonoBehaviour:

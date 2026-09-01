@@ -50,9 +50,9 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(5, mushroom.HitPoints);
             Assert.AreEqual(1, mushroom.Volume.CountOf<Water>());
 
-            var waterElement = Spawn<WaterElement>();
-            Assert.AreEqual(5, waterElement.HitPoints);
-            Assert.AreEqual(1, waterElement.Volume.CountOf<Water>());
+            var undine = Spawn<Undine>();
+            Assert.AreEqual(5, undine.HitPoints);
+            Assert.AreEqual(1, undine.Volume.CountOf<Water>());
 
             var cactus = Spawn<Cactus>();
             Assert.AreEqual(5, cactus.HitPoints);
@@ -280,8 +280,8 @@ namespace SlimesRevenge.Tests
                     case Mushroom:
                         Mushroom.FillStarting(creature.Volume);
                         break;
-                    case WaterElement:
-                        WaterElement.FillStarting(creature.Volume);
+                    case Undine:
+                        Undine.FillStarting(creature.Volume);
                         break;
                     case Cactus:
                         Cactus.FillStarting(creature.Volume);
@@ -318,7 +318,7 @@ namespace SlimesRevenge.Tests
                     creature.SetArmor(1);
                     break;
                 case Mushroom:
-                case WaterElement:
+                case Undine:
                 case Cactus:
                 case Mandragora:
                 case Eye:

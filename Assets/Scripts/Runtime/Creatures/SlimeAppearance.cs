@@ -10,13 +10,14 @@ namespace SlimesRevenge
         Acid,
         Blood,
         Lava,
+        Mercury,
     }
 
     public static class SlimeAppearance
     {
         /// <summary>
         /// Plurality among substance looks. Ties use <see cref="Substance.AppearanceTieBreak"/>
-        /// (water → poison → acid → oil → blood → lava). Empty volume → water.
+        /// (water → poison → acid → oil → blood → lava → mercury). Empty volume → water.
         /// </summary>
         public static SlimeLook FromVolume(Volume volume)
         {

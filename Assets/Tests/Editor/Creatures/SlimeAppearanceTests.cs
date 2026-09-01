@@ -27,6 +27,7 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(SlimeLook.Acid, SlimeAppearance.FromVolume(Filled(new Acid())));
             Assert.AreEqual(SlimeLook.Blood, SlimeAppearance.FromVolume(Filled(new Blood())));
             Assert.AreEqual(SlimeLook.Lava, SlimeAppearance.FromVolume(Filled(new Lava())));
+            Assert.AreEqual(SlimeLook.Mercury, SlimeAppearance.FromVolume(Filled(new Mercury())));
         }
 
         [Test]

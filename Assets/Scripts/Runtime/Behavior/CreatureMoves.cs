@@ -10,12 +10,19 @@ namespace SlimesRevenge
             return self != null
                 && other != null
                 && other.IsAlive
-                && GridStep.InRange(self.Cell, other.Cell, self.VisionRange);
+                && GridStep.InRange(self.Cell, other.Cell, self.VisionRange)
+                && IsDetected(self, other);
         }
 
         public static bool IsAdjacent(Creature self, Creature other)
         {
             return GridStep.IsAdjacent(self, other);
+        }
+
+        /// <summary>Vision and adjacency attacks respect stealth unless the observer is already aggroed.</summary>
+        public static bool IsDetected(Creature observer, Creature target)
+        {
+            return target != null && target.IsDetectedBy(observer);
         }
 
         public static bool TryWander(Creature self, GameSession session, IRng rng)

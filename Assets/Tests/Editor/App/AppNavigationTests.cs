@@ -57,12 +57,12 @@ namespace SlimesRevenge.Tests
         }
 
         [Test]
-        public void WithoutPendingConfig_GameWouldFallBackToCampaign_NotDuel()
+        public void WithoutPendingConfig_GameRedirectsToMain_NotCampaign()
         {
             Assert.IsFalse(RunConfig.HasPending);
             Assert.IsFalse(
                 RunConfig.TryPeek(out _),
-                "Exit must land on Main, never reload Game with empty pending (campaign)."
+                "Game scene must not bootstrap campaign without a pending run from the menu."
             );
         }
 

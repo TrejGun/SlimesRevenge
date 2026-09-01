@@ -1,8 +1,8 @@
 namespace SlimesRevenge
 {
-    public sealed class WaterElement : Creature
+    public sealed class Undine : Creature
     {
-        public override CreatureKind Kind => CreatureKind.WaterElement;
+        public override CreatureKind Kind => CreatureKind.Undine;
 
         public static void FillStarting(Volume volume)
         {

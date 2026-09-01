@@ -60,6 +60,12 @@ namespace SlimesRevenge
         public virtual bool IsPredator(Creature other) => false;
 
         /// <summary>
+        /// When true, <paramref name="observer"/> cannot spot <paramref name="target"/> for chase/attack
+        /// until the observer is already aggroed.
+        /// </summary>
+        public virtual bool BlocksDetectionFrom(Creature observer, Creature target) => false;
+
+        /// <summary>
         /// Path cost override for a floor substance. Null = no opinion.
         /// </summary>
         public virtual int? FloorPriorityOverride(Substance substance) => null;

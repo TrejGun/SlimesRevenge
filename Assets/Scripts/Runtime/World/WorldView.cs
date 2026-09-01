@@ -57,6 +57,9 @@ namespace SlimesRevenge
         private Sprite slimeLava;
 
         [SerializeField]
+        private Sprite slimeMercury;
+
+        [SerializeField]
         private TurnManager turnManager;
 
         public World Map { get; private set; }
@@ -71,19 +74,21 @@ namespace SlimesRevenge
 
         private void Awake()
         {
-            if (RunConfig.TryPeek(out var run))
+            if (!RunConfig.TryPeek(out var run))
             {
-                activeRun = run;
-                pendingLoadout = run.Loadout;
+                AppNavigation.GoToMainMenu();
+                return;
             }
 
-            if (activeRun != null && activeRun.Kind == RunKind.Duel)
+            activeRun = run;
+            pendingLoadout = run.Loadout;
+
+            if (activeRun.Kind == RunKind.Duel)
             {
                 BootstrapDuel(activeRun);
             }
             else
             {
-                // Campaign (menu) or editor Play-on-Game with no config — 10×10 full cast.
                 BootstrapCampaign();
             }
 
@@ -228,7 +233,8 @@ namespace SlimesRevenge
                 slimePoison,
                 slimeAcid,
                 slimeBlood,
-                slimeLava
+                slimeLava,
+                slimeMercury
             );
             var renderer = go.AddComponent<SpriteRenderer>();
             renderer.sortingOrder = 10;

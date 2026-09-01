@@ -15,8 +15,18 @@ Examples:
   python3 scripts/recolor_slime.py --preset blood -o scripts/out/blood.png
   python3 scripts/recolor_slime.py --preset lava -o scripts/out/lava.png
   python3 scripts/recolor_slime.py --preset mercury -o scripts/out/mercury.png
+  python3 scripts/recolor_slime.py --preset mercury --mode luminance \\
+      --template Assets/Art/Slimes/Water.png \\
+      -o Assets/Art/Slimes/Mercury.png \\
+      --also-meta-from Assets/Art/Slimes/Water.png \\
+      --meta-guid a1119ee1e00000000000000000000007
   python3 scripts/recolor_slime.py --preset acid -o scripts/out/acid_yellowish.png
   python3 scripts/recolor_slime.py --dump-palette
+
+Modes:
+  ramp (default) — remap the fixed 6-stop FDR body palette via HSV ratios.
+  luminance      — per-pixel luminance remap (good for water→mercury metallics;
+                   does not require exactly six body colors on the template).
 """
 
 from __future__ import annotations
@@ -25,6 +35,7 @@ import argparse
 import colorsys
 import sys
 from collections import Counter
+from collections.abc import Callable
 from pathlib import Path
 
 from PIL import Image
@@ -65,6 +76,40 @@ PRESET_TUNING: dict[str, dict] = {
     "mercury": {"sat": 0.22, "value": 0.62},
     "acid": {"hue_shift": 15},
 }
+
+# Per-pixel luminance remaps (--mode luminance). Preset name → RGBA transform.
+LUMINANCE_PRESETS: dict[str, Callable[[int, int, int, int], tuple[int, int, int, int]]] = {}
+
+
+def mercury_luminance_rgb(r: int, g: int, b: int, a: int) -> tuple[int, int, int, int]:
+    """Map water blues to a cool metallic ramp with specular glints on highlights."""
+    if a < 8:
+        return r, g, b, a
+
+    lum = 0.299 * r + 0.587 * g + 0.114 * b
+    if lum < 255.0 * 0.22:
+        base = (68, 74, 84)
+    elif lum < 255.0 * 0.45:
+        base = (108, 118, 132)
+    elif lum < 255.0 * 0.68:
+        base = (152, 168, 184)
+    elif lum < 255.0 * 0.82:
+        base = (176, 192, 208)
+    else:
+        base = (214, 222, 232)
+
+    if lum > 185 and b >= r:
+        boost = int(min(42, (lum - 185) * 0.35))
+        base = (
+            min(255, base[0] + boost),
+            min(255, base[1] + boost),
+            min(255, base[2] + boost),
+        )
+
+    return base[0], base[1], base[2], a
+
+
+LUMINANCE_PRESETS["mercury"] = mercury_luminance_rgb
 
 
 def rgb_to_hsv(rgb: tuple[int, int, int]) -> tuple[float, float, float]:
@@ -204,6 +249,39 @@ def recolor(
     return result
 
 
+def recolor_luminance(
+    image: Image.Image,
+    transform: Callable[[int, int, int, int], tuple[int, int, int, int]],
+) -> Image.Image:
+    out = [transform(r, g, b, a) for r, g, b, a in image.copy().getdata()]
+    result = Image.new("RGBA", image.size)
+    result.putdata(out)
+    return result
+
+
+def write_meta_from(src_png: Path, dst_png: Path, guid: str | None) -> None:
+    src_meta = Path(str(src_png) + ".meta")
+    if not src_meta.is_file():
+        print(f"warn: no meta at {src_meta}", file=sys.stderr)
+        return
+
+    if guid is None:
+        import uuid
+
+        guid = uuid.uuid4().hex
+
+    text = src_meta.read_text()
+    lines = []
+    for line in text.splitlines(keepends=True):
+        if line.startswith("guid:"):
+            lines.append(f"guid: {guid}\n")
+        else:
+            lines.append(line)
+    out_meta = Path(str(dst_png) + ".meta")
+    out_meta.write_text("".join(lines))
+    print(f"wrote {out_meta}")
+
+
 def dump_palette(path: Path) -> None:
     im = Image.open(path).convert("RGBA")
     ramp = extract_body_ramp(im)
@@ -242,6 +320,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="source sheet (default: green FDR_Enemy_01_A.png)",
     )
     p.add_argument("--dump-palette", action="store_true", help="print template ramp and exit")
+    p.add_argument(
+        "--mode",
+        choices=("ramp", "luminance"),
+        default="ramp",
+        help="ramp = 6-stop HSV remap; luminance = per-pixel preset transform",
+    )
     p.add_argument("-o", "--output", type=Path, help="output PNG path")
     g = p.add_mutually_exclusive_group()
     g.add_argument("--preset", choices=sorted(PRESETS), help="anchor on a known RGB")
@@ -256,6 +340,10 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--also-meta-from",
         type=Path,
         help="copy Unity .meta from this png beside the output (optional)",
+    )
+    p.add_argument(
+        "--meta-guid",
+        help="fixed guid: line for --also-meta-from (default: random uuid)",
     )
     return p
 
@@ -276,66 +364,66 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     image = Image.open(template_path).convert("RGBA")
-    src_ramp = extract_body_ramp(image)
-    key_i = mid_index(src_ramp, image)
-    key = resolve_key(args)
-    tune = PRESET_TUNING.get(args.preset or "", {})
-    sat = args.sat if args.sat is not None else tune.get("sat")
-    value = args.value if args.value is not None else tune.get("value")
-    hue_shift = args.hue_shift if args.hue_shift != 0.0 else float(tune.get("hue_shift", 0.0))
-    # CLI --hue-shift 0 is common default; if preset has hue_shift and user left 0, use preset.
-    if args.preset and args.hue_shift == 0.0 and "hue_shift" in tune:
-        hue_shift = float(tune["hue_shift"])
-    sat_scale = args.sat_scale if args.sat_scale != 1.0 else float(tune.get("sat_scale", 1.0))
-    value_scale = args.value_scale if args.value_scale != 1.0 else float(tune.get("value_scale", 1.0))
-    if args.preset and args.value_scale == 1.0 and "value_scale" in tune:
-        value_scale = float(tune["value_scale"])
-    if args.preset and args.sat_scale == 1.0 and "sat_scale" in tune:
-        sat_scale = float(tune["sat_scale"])
-    dst_ramp = build_ramp(
-        src_ramp,
-        key_rgb=key,
-        key_index=key_i,
-        hue=args.hue if args.preset is None and args.hex is None else None,
-        sat=sat,
-        value=value,
-        hue_shift_deg=hue_shift,
-        sat_scale=sat_scale,
-        value_scale=value_scale,
-    )
 
-    print("source ramp → destination ramp")
-    for s, d in zip(src_ramp, dst_ramp):
-        sh, ss, sv = rgb_to_hsv(s)
-        dh, ds, dv = rgb_to_hsv(d)
-        print(
-            f"  {s} L={luminance(s):.3f} → {d} L={luminance(d):.3f}  "
-            f"H {sh*360:5.1f}→{dh*360:5.1f}  S {ss:.2f}→{ds:.2f}  V {sv:.2f}→{dv:.2f}"
+    if args.mode == "luminance":
+        if not args.preset:
+            print("--mode luminance requires --preset", file=sys.stderr)
+            return 1
+        transform = LUMINANCE_PRESETS.get(args.preset)
+        if transform is None:
+            print(
+                f"no luminance transform for preset {args.preset!r}; "
+                f"available: {', '.join(sorted(LUMINANCE_PRESETS))}",
+                file=sys.stderr,
+            )
+            return 1
+        result = recolor_luminance(image, transform)
+    else:
+        src_ramp = extract_body_ramp(image)
+        key_i = mid_index(src_ramp, image)
+        key = resolve_key(args)
+        tune = PRESET_TUNING.get(args.preset or "", {})
+        sat = args.sat if args.sat is not None else tune.get("sat")
+        value = args.value if args.value is not None else tune.get("value")
+        hue_shift = args.hue_shift if args.hue_shift != 0.0 else float(tune.get("hue_shift", 0.0))
+        # CLI --hue-shift 0 is common default; if preset has hue_shift and user left 0, use preset.
+        if args.preset and args.hue_shift == 0.0 and "hue_shift" in tune:
+            hue_shift = float(tune["hue_shift"])
+        sat_scale = args.sat_scale if args.sat_scale != 1.0 else float(tune.get("sat_scale", 1.0))
+        value_scale = args.value_scale if args.value_scale != 1.0 else float(tune.get("value_scale", 1.0))
+        if args.preset and args.value_scale == 1.0 and "value_scale" in tune:
+            value_scale = float(tune["value_scale"])
+        if args.preset and args.sat_scale == 1.0 and "sat_scale" in tune:
+            sat_scale = float(tune["sat_scale"])
+        dst_ramp = build_ramp(
+            src_ramp,
+            key_rgb=key,
+            key_index=key_i,
+            hue=args.hue if args.preset is None and args.hex is None else None,
+            sat=sat,
+            value=value,
+            hue_shift_deg=hue_shift,
+            sat_scale=sat_scale,
+            value_scale=value_scale,
         )
 
-    result = recolor(image, src_ramp, dst_ramp)
+        print("source ramp → destination ramp")
+        for s, d in zip(src_ramp, dst_ramp):
+            sh, ss, sv = rgb_to_hsv(s)
+            dh, ds, dv = rgb_to_hsv(d)
+            print(
+                f"  {s} L={luminance(s):.3f} → {d} L={luminance(d):.3f}  "
+                f"H {sh*360:5.1f}→{dh*360:5.1f}  S {ss:.2f}→{ds:.2f}  V {sv:.2f}→{dv:.2f}"
+            )
+
+        result = recolor(image, src_ramp, dst_ramp)
+
     args.output.parent.mkdir(parents=True, exist_ok=True)
     result.save(args.output)
     print(f"wrote {args.output}")
 
     if args.also_meta_from is not None:
-        src_meta = Path(str(args.also_meta_from) + ".meta")
-        if not src_meta.is_file():
-            print(f"warn: no meta at {src_meta}", file=sys.stderr)
-        else:
-            # New guid so Unity treats it as a distinct texture.
-            import uuid
-
-            text = src_meta.read_text()
-            lines = []
-            for line in text.splitlines(keepends=True):
-                if line.startswith("guid:"):
-                    lines.append(f"guid: {uuid.uuid4().hex}\n")
-                else:
-                    lines.append(line)
-            out_meta = Path(str(args.output) + ".meta")
-            out_meta.write_text("".join(lines))
-            print(f"wrote {out_meta}")
+        write_meta_from(args.also_meta_from, args.output, args.meta_guid)
 
     return 0
 

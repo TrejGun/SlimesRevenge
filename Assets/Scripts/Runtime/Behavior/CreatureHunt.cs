@@ -45,7 +45,7 @@ namespace SlimesRevenge
             {
                 CreatureTurnContext.FocusTarget = prey;
                 self.RememberPursuit(prey.Cell);
-                return CreatureMoves.IsAdjacent(self, prey)
+                return CreatureMoves.IsAdjacent(self, prey) && CreatureMoves.IsDetected(self, prey)
                     ? CreatureIntent.Attack
                     : CreatureIntent.Chase;
             }

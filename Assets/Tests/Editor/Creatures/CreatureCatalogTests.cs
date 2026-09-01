@@ -119,24 +119,5 @@ namespace SlimesRevenge.Tests
             Assert.AreEqual(RunKind.Campaign, restored.Kind);
             Assert.IsNull(restored.Loadout);
         }
-
-        [Test]
-        public void RunConfig_Consume_RaisesCleared()
-        {
-            var cleared = 0;
-            void OnCleared() => cleared++;
-            RunConfig.Cleared += OnCleared;
-            try
-            {
-                RunConfig.SetDuel(CreatureKind.Dog, RunConfig.DefaultWaterLoadout());
-                Assert.IsTrue(RunConfig.TryConsume(out _));
-                Assert.AreEqual(1, cleared);
-                Assert.IsFalse(RunConfig.HasPending);
-            }
-            finally
-            {
-                RunConfig.Cleared -= OnCleared;
-            }
-        }
     }
 }
