@@ -43,9 +43,6 @@ namespace SlimesRevenge
         private WorldView worldView;
 
         [SerializeField]
-        private Slime slime;
-
-        [SerializeField]
         private Camera worldCamera;
 
         [SerializeField]
@@ -65,9 +62,11 @@ namespace SlimesRevenge
             }
         }
 
+        private Slime Slime => turns != null ? turns.Controlled as Slime : null;
+
         private void Update()
         {
-            if (turns == null || !turns.IsWaitingForInput || slime == null || !slime.IsAlive)
+            if (turns == null || !turns.IsWaitingForInput || this.Slime == null || !this.Slime.IsAlive)
             {
                 return;
             }
@@ -174,7 +173,7 @@ namespace SlimesRevenge
             }
 
             tracking = true;
-            fromSlime = cell == slime.Cell;
+            fromSlime = cell == Slime.Cell;
             pressScreen = screen;
             SetSelected(fromSlime);
             SetHighlight(cell);
@@ -223,12 +222,12 @@ namespace SlimesRevenge
 
             if (fromSlime && delta.magnitude < swipePixels)
             {
-                OpenCellMenu(slime.Cell);
+                OpenCellMenu(Slime.Cell);
                 ClearSelection();
                 return;
             }
 
-            if (TryCellAt(screen, out var cell) && GridStep.IsAdjacent(slime.Cell, cell))
+            if (TryCellAt(screen, out var cell) && GridStep.IsAdjacent(Slime.Cell, cell))
             {
                 if (turns.Session != null && turns.Session.IsOccupied(cell))
                 {
@@ -253,7 +252,7 @@ namespace SlimesRevenge
             var floor = turns.Session.World.Floor;
             var ctx = new CellMenuContext(
                 cell,
-                slime,
+                Slime,
                 turns.LivingAt(cell),
                 floor.GetPuddle(cell),
                 floor.GetCorpses(cell),
@@ -264,20 +263,20 @@ namespace SlimesRevenge
 
         private void SetHighlight(Vector2Int cell)
         {
-            if (turns.Session == null)
+            if (turns.Session == null || Slime == null)
             {
                 return;
             }
 
-            var show = cell == slime.Cell || GridStep.IsAdjacent(slime.Cell, cell);
+            var show = cell == Slime.Cell || GridStep.IsAdjacent(Slime.Cell, cell);
             turns.Session.HighlightCell = show ? cell : (Vector2Int?)null;
         }
 
         private void SetSelected(bool selected)
         {
-            if (slime != null)
+            if (Slime != null)
             {
-                slime.transform.localScale = Vector3.one * (selected ? 1.15f : 1f);
+                Slime.transform.localScale = Vector3.one * (selected ? 1.15f : 1f);
             }
         }
 
