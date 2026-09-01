@@ -51,8 +51,7 @@ InitTestScene*.unity*
 scripts/__pycache__/
 *.pyc
 
-# Local art tooling (not committed)
-scripts/recolor_slime.py
+# Local art tooling
 scripts/out/
 
 # Local Unity AI Assistant editor settings
