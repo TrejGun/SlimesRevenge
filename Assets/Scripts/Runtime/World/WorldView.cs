@@ -39,34 +39,29 @@ namespace SlimesRevenge
         private Camera worldCamera;
 
         [SerializeField]
-        private Slime slime;
+        private Sprite slimeWater;
 
         [SerializeField]
-        private Rat rat;
+        private Sprite slimeOil;
 
         [SerializeField]
-        private Cat cat;
+        private Sprite slimePoison;
 
         [SerializeField]
-        private Dog dog;
+        private Sprite slimeAcid;
 
         [SerializeField]
-        private Bat bat;
+        private Sprite slimeBlood;
 
         [SerializeField]
-        private Scorpion scorpion;
-
-        [SerializeField]
-        private Sprite batSprite;
-
-        [SerializeField]
-        private Sprite scorpionSprite;
+        private Sprite slimeLava;
 
         [SerializeField]
         private TurnManager turnManager;
 
         public World Map { get; private set; }
 
+        private Slime slime;
         private Tilemap decorTilemap;
         private Tilemap pathTilemap;
         private SpriteRenderer cursor;
@@ -155,12 +150,7 @@ namespace SlimesRevenge
             EnsurePathTilemap();
             var center = Map.Center;
             Paint(paintPath: false, center);
-            Place(slime, center);
-            DisableCreature(rat);
-            DisableCreature(cat);
-            DisableCreature(dog);
-            DisableCreature(bat);
-            DisableCreature(scorpion);
+            slime = SpawnSlime(center);
 
             var offsets = new[]
             {
@@ -212,15 +202,9 @@ namespace SlimesRevenge
             );
             var foeCell = new Vector2Int(slimeCell.x + RunConfig.DuelSeparation, slimeCell.y);
             Paint(paintPath: true, slimeCell, foeCell);
-            Place(slime, slimeCell);
+            slime = SpawnSlime(slimeCell);
 
-            DisableCreature(rat);
-            DisableCreature(cat);
-            DisableCreature(dog);
-            DisableCreature(bat);
-            DisableCreature(scorpion);
-
-            var foe = SpawnOpponent(run.Opponent, foeCell);
+            var foe = SpawnFromCatalog(run.Opponent, foeCell);
             if (slime != null)
             {
                 slime.Face(foeCell);
@@ -234,42 +218,25 @@ namespace SlimesRevenge
             }
         }
 
-        private Creature SpawnOpponent(CreatureKind kind, Vector2Int cell)
+        private Slime SpawnSlime(Vector2Int cell)
         {
-            switch (kind)
-            {
-                case CreatureKind.Rat:
-                    EnableAndPlace(rat, cell);
-                    CreatureSpriteAnimator.PlayWalk(
-                        rat,
-                        slime != null ? slime.Cell : cell + Vector2Int.left
-                    );
-                    return rat;
-                case CreatureKind.Cat:
-                    EnableAndPlace(cat, cell);
-                    CreatureSpriteAnimator.PlayWalk(
-                        cat,
-                        slime != null ? slime.Cell : cell + Vector2Int.left
-                    );
-                    return cat;
-                case CreatureKind.Dog:
-                    EnableAndPlace(dog, cell);
-                    CreatureSpriteAnimator.PlayWalk(
-                        dog,
-                        slime != null ? slime.Cell : cell + Vector2Int.left
-                    );
-                    return dog;
-                case CreatureKind.Scorpion:
-                    scorpion = EnsureEnemy(scorpion, "Scorpion", scorpionSprite, cell);
-                    EnableAndPlace(scorpion, cell);
-                    CreatureSpriteAnimator.PlayWalk(
-                        scorpion,
-                        slime != null ? slime.Cell : cell + Vector2Int.left
-                    );
-                    return scorpion;
-                default:
-                    return SpawnFromCatalog(kind, cell);
-            }
+            var go = new GameObject("Slime");
+            var spawned = go.AddComponent<Slime>();
+            spawned.BindSheets(
+                slimeWater,
+                slimeOil,
+                slimePoison,
+                slimeAcid,
+                slimeBlood,
+                slimeLava
+            );
+            var renderer = go.AddComponent<SpriteRenderer>();
+            renderer.sortingOrder = 10;
+            var collider = go.AddComponent<CircleCollider2D>();
+            collider.isTrigger = true;
+            collider.radius = 0.45f;
+            Place(spawned, cell);
+            return spawned;
         }
 
         private Creature SpawnFromCatalog(CreatureKind kind, Vector2Int cell)
@@ -290,10 +257,7 @@ namespace SlimesRevenge
 
             var renderer = go.AddComponent<SpriteRenderer>();
             var idle = CreatureSheet.Clip(kind, WalkFacing.South, FdrClip.Idle);
-            renderer.sprite =
-                idle != null && idle.Length > 0 ? idle[0]
-                : batSprite != null ? batSprite
-                : scorpionSprite;
+            renderer.sprite = idle != null && idle.Length > 0 ? idle[0] : null;
             renderer.sortingOrder = 10;
             var collider = go.AddComponent<CircleCollider2D>();
             collider.isTrigger = true;
@@ -304,25 +268,6 @@ namespace SlimesRevenge
                 slime != null ? slime.Cell : cell + Vector2Int.left
             );
             return creature;
-        }
-
-        private static void EnableAndPlace(Creature creature, Vector2Int cell)
-        {
-            if (creature == null)
-            {
-                return;
-            }
-
-            creature.gameObject.SetActive(true);
-            Place(creature, cell);
-        }
-
-        private static void DisableCreature(Creature creature)
-        {
-            if (creature != null)
-            {
-                creature.gameObject.SetActive(false);
-            }
         }
 
         private void LateUpdate()
@@ -560,27 +505,6 @@ namespace SlimesRevenge
             {
                 creature.PlaceOn(cell);
             }
-        }
-
-        private static T EnsureEnemy<T>(T existing, string name, Sprite sprite, Vector2Int cell)
-            where T : Creature
-        {
-            if (existing != null)
-            {
-                Place(existing, cell);
-                return existing;
-            }
-
-            var go = new GameObject(name);
-            var creature = go.AddComponent<T>();
-            var renderer = go.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.sortingOrder = 10;
-            var collider = go.AddComponent<CircleCollider2D>();
-            collider.isTrigger = true;
-            collider.radius = 0.45f;
-            Place(creature, cell);
-            return creature;
         }
 
         private SpriteRenderer CreateCursor()

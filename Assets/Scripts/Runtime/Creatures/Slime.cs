@@ -30,6 +30,25 @@ namespace SlimesRevenge
         private WalkFacing facing = WalkFacing.East;
         private bool appearanceStarted;
 
+        public void BindSheets(
+            Sprite water,
+            Sprite oil,
+            Sprite poison,
+            Sprite acid,
+            Sprite blood,
+            Sprite lava
+        )
+        {
+            waterSprite = water;
+            oilSprite = oil;
+            poisonSprite = poison;
+            acidSprite = acid;
+            bloodSprite = blood;
+            lavaSprite = lava;
+            appearanceStarted = false;
+            ApplyAppearance();
+        }
+
         public static void FillStarting(Volume volume)
         {
             volume.Fill(new Water(), new Water(), new Oil(), new Poison(), new Acid(), new Lava());
